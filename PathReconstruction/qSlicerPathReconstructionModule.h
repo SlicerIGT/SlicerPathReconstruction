@@ -50,13 +50,16 @@ public:
   virtual QString acknowledgementText()const;
 
   /// Return the authors of the module
-  virtual QStringList  contributors()const;
+  virtual QStringList contributors()const;
 
   /// Return a custom icon for the module
   virtual QIcon icon()const;
 
   /// Return the categories for the module
   virtual QStringList categories()const;
+
+  /// Return the dependencies the module
+  virtual QStringList dependencies()const;
 
 protected:
 

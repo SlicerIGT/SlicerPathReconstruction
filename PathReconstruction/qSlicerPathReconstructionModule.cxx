@@ -89,6 +89,15 @@ QStringList qSlicerPathReconstructionModule::contributors()const
 }
 
 //-----------------------------------------------------------------------------
+QStringList qSlicerPathReconstructionModule::dependencies()const
+{
+	QStringList dependencies;
+	dependencies << QString("SlicerIGT");
+	dependencies << QString("MarkupsToModel");
+	return dependencies;
+}
+
+//-----------------------------------------------------------------------------
 QIcon qSlicerPathReconstructionModule::icon()const
 {
   return QIcon(":/Icons/PathReconstruction.png");
