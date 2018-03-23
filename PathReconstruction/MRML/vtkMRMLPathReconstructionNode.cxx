@@ -130,7 +130,7 @@ void vtkMRMLPathReconstructionNode::Copy( vtkMRMLNode *anode )
 }
 
 //------------------------------------------------------------------------------
-vtkMRMLLinearTransformNode* vtkMRMLPathReconstructionNode::GetSamplingTransformNode()
+vtkMRMLTransformNode* vtkMRMLPathReconstructionNode::GetSamplingTransformNode()
 {
   vtkMRMLCollectPointsNode* collectPointsNode = this->GetCollectPointsNode();
   if ( collectPointsNode == NULL )
@@ -138,11 +138,11 @@ vtkMRMLLinearTransformNode* vtkMRMLPathReconstructionNode::GetSamplingTransformN
     vtkErrorMacro( "No CollectPoints module node is set. Returning NULL." );
     return NULL;
   }
-  return collectPointsNode->GetProbeTransformNode();
+  return collectPointsNode->GetSamplingTransformNode();
 }
 
 //------------------------------------------------------------------------------
-vtkMRMLLinearTransformNode* vtkMRMLPathReconstructionNode::GetAnchorTransformNode()
+vtkMRMLTransformNode* vtkMRMLPathReconstructionNode::GetAnchorTransformNode()
 {
   vtkMRMLCollectPointsNode* collectPointsNode = this->GetCollectPointsNode();
   if ( collectPointsNode == NULL )
@@ -189,7 +189,7 @@ void vtkMRMLPathReconstructionNode::ApplyDefaultSettingsToCollectPointsNode( vtk
     vtkErrorMacro( "CollectPoints node is null. Cannot apply default settings." )
     return;
   }
-  collectPointsNode->SetMinimumDistanceMm( 0.0 );
+  collectPointsNode->SetMinimumDistance( 0.0 );
   collectPointsNode->SetCollectModeToManual();
 }
 

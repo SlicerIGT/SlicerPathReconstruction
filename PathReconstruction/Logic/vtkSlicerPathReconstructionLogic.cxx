@@ -178,8 +178,8 @@ void vtkSlicerPathReconstructionLogic::StartRecording( vtkMRMLPathReconstruction
 
   vtkMRMLCollectPointsNode* collectPointsNode = pathReconstructionNode->GetCollectPointsNode();
   const char* pointsNodeID = pointsNode->GetID();
-  collectPointsNode->SetOutputNodeId( pointsNodeID );
-  collectPointsNode->CreateDefaultDisplayNodesForOutputNodes();
+  collectPointsNode->SetOutputNodeID( pointsNodeID );
+  collectPointsNode->CreateDefaultDisplayNodesForOutputNode();
   collectPointsNode->SetCollectModeToAutomatic();
 
   vtkMRMLModelDisplayNode* pointsDisplayNode = pointsNode->GetModelDisplayNode();

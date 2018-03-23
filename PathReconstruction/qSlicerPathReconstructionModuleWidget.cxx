@@ -224,7 +224,7 @@ void qSlicerPathReconstructionModuleWidget::onSamplingTransformSelected()
     qCritical() << Q_FUNC_INFO << ": invalid CollectPoints node";
     return;
   }
-  collectPointsNode->SetAndObserveProbeTransformNodeId( samplingTransformNodeID );
+  collectPointsNode->SetAndObserveSamplingTransformNodeID( samplingTransformNodeID );
 
   this->updateGUIFromMRML();
 }
@@ -254,7 +254,7 @@ void qSlicerPathReconstructionModuleWidget::onAnchorTransformSelected()
     qCritical() << Q_FUNC_INFO << ": invalid CollectPoints node";
     return;
   }
-  collectPointsNode->SetAndObserveAnchorTransformNodeId( anchorTransformNodeID );
+  collectPointsNode->SetAndObserveAnchorTransformNodeID( anchorTransformNodeID );
 
   this->updateGUIFromMRML();
 }
@@ -486,9 +486,9 @@ void qSlicerPathReconstructionModuleWidget::updateGUIFromMRML()
 
   if ( collectPointsNode )
   {
-    vtkMRMLLinearTransformNode* samplingTransformNode = pathReconstructionNode->GetSamplingTransformNode();
+    vtkMRMLTransformNode* samplingTransformNode = pathReconstructionNode->GetSamplingTransformNode();
     d->SamplingTransformComboBox->setCurrentNode( samplingTransformNode );
-    vtkMRMLLinearTransformNode* anchorTransformNode = pathReconstructionNode->GetAnchorTransformNode();
+    vtkMRMLTransformNode* anchorTransformNode = pathReconstructionNode->GetAnchorTransformNode();
     d->AnchorTransformComboBox->setCurrentNode( anchorTransformNode );
   }
   else

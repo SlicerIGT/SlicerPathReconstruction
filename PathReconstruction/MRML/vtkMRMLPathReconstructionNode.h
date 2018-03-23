@@ -28,7 +28,7 @@
 #include "vtkMRMLScene.h"
 
 class vtkMRMLCollectPointsNode;
-class vtkMRMLLinearTransformNode;
+class vtkMRMLTransformNode;
 class vtkMRMLMarkupsToModelNode;
 class vtkMRMLModelNode;
 
@@ -77,8 +77,8 @@ protected:
 
 public:
   // Convenient access to the corresponding nodes in the CollectPoints module.
-  vtkMRMLLinearTransformNode* GetSamplingTransformNode();
-  vtkMRMLLinearTransformNode* GetAnchorTransformNode();
+  vtkMRMLTransformNode* GetSamplingTransformNode();
+  vtkMRMLTransformNode* GetAnchorTransformNode();
 
   vtkGetMacro( PointsColorRed, double );
   vtkGetMacro( PointsColorGreen, double );
