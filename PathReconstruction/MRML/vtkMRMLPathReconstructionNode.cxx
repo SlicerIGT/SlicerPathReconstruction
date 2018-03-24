@@ -230,8 +230,7 @@ void vtkMRMLPathReconstructionNode::ApplyDefaultSettingsToMarkupsToModelNode( vt
     return;
   }
   markupsToModelNode->SetModelType( vtkMRMLMarkupsToModelNode::Curve );
-  markupsToModelNode->SetInterpolationType( vtkMRMLMarkupsToModelNode::Polynomial);
-  markupsToModelNode->SetPolynomialOrder( 3 ); // TODO: Replace with moving least squares when available.
+  markupsToModelNode->SetInterpolationType( vtkMRMLMarkupsToModelNode::Linear ); // TODO: Replace with moving least squares when available
   markupsToModelNode->SetPointParameterType( vtkMRMLMarkupsToModelNode::MinimumSpanningTree );
   markupsToModelNode->SetAutoUpdateOutput( false );
 }
@@ -266,6 +265,22 @@ vtkMRMLModelNode* vtkMRMLPathReconstructionNode::GetNthPathModelNode( int n )
 {
   vtkMRMLModelNode* node = vtkMRMLModelNode::SafeDownCast( this->GetNthNodeReference( PATH_MODEL_ROLE, n ) );
   return node;
+}
+
+//------------------------------------------------------------------------------
+int vtkMRMLPathReconstructionNode::GetNumberOfPathPointsPairs()
+{
+  int numberOfPointsNodes = this->GetNumberOfNodeReferences( POINTS_MODEL_ROLE );
+  int numberOfPathNodes = this->GetNumberOfNodeReferences( PATH_MODEL_ROLE );
+  if ( numberOfPointsNodes != numberOfPathNodes )
+  {
+    vtkWarningMacro( "The number of points model nodes " << numberOfPointsNodes << " and " <<
+                     "The number of path model nodes " << numberOfPathNodes << " are not equal. " <<
+                     "This is a bug, and unexpected results may occur. Please save your scene and report this." <<
+                     "Returning the least of the two values." );
+  }
+
+  return vtkMath::Min( numberOfPointsNodes, numberOfPathNodes );
 }
 
 //------------------------------------------------------------------------------

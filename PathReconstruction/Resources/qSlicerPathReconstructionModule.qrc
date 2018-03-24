@@ -1,5 +1,7 @@
 <!DOCTYPE RCC><RCC version="1.0">
   <qresource>
     <file>Icons/PathReconstruction.png</file>
+    <file>Icons/PathDelete.png</file>
+    <file>Icons/PathDeleteAll.png</file>
   </qresource>
 </RCC>

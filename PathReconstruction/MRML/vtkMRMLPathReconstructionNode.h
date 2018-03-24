@@ -117,6 +117,7 @@ public:
   // outputs
   vtkMRMLModelNode* GetNthPointsModelNode( int n );
   vtkMRMLModelNode* GetNthPathModelNode( int n );
+  int GetNumberOfPathPointsPairs();
   void AddPointsPathPairModelNodeIDs( const char* pointsNodeID, const char* pathNodeID );
   void RemoveNthPointsPathPair( int n );
 

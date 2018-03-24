@@ -57,6 +57,8 @@ protected slots:
   void onPathBaseNameChanged();
   void onNextCountChanged();
   void onRecordingButtonClicked();
+  void onDeleteButtonClicked();
+  void onDeleteAllClicked();
   void updateGUIFromMRML();
 
 protected:

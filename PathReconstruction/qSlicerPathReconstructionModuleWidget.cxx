@@ -46,7 +46,8 @@ protected:
 public:
   qSlicerPathReconstructionModuleWidgetPrivate( qSlicerPathReconstructionModuleWidget& object );
   vtkSlicerPathReconstructionLogic* logic() const;
-  QMenu* OutputDeleteMenu;
+
+  QMenu* DeleteMenu;
 };
 
 //-----------------------------------------------------------------------------
@@ -102,6 +103,13 @@ void qSlicerPathReconstructionModuleWidget::setup()
   connect( d->MarkupsToModelColorPicker, SIGNAL( colorChanged( QColor ) ), this, SLOT( onMarkupsToModelColorChanged( QColor ) ) );
 
   connect( d->RecordingButton, SIGNAL( clicked() ), this, SLOT( onRecordingButtonClicked() ) );
+
+  connect( d->DeleteButton, SIGNAL( clicked() ), this, SLOT( onDeleteButtonClicked() ) );
+  d->DeleteMenu = new QMenu(tr( "Delete options" ), d->DeleteButton );
+  d->DeleteMenu->setObjectName( "DeleteMenu" );
+  d->DeleteMenu->addAction( d->ActionDeleteAll );
+  QObject::connect( d->ActionDeleteAll, SIGNAL( triggered() ), this, SLOT( onDeleteAllClicked() ) );
+  d->DeleteButton->setMenu( d->DeleteMenu );
 }
 
 //-----------------------------------------------------------------------------
@@ -160,6 +168,7 @@ void qSlicerPathReconstructionModuleWidget::blockAllSignals( bool block )
   d->MarkupsToModelComboBox->blockSignals( block );
   d->MarkupsToModelColorPicker->blockSignals( block );
   d->RecordingButton->blockSignals( block );
+  d->DeleteButton->blockSignals( block );
 }
 
 //-----------------------------------------------------------------------------
@@ -177,6 +186,7 @@ void qSlicerPathReconstructionModuleWidget::enableAllWidgets( bool enable )
   d->MarkupsToModelComboBox->setEnabled( enable );
   d->MarkupsToModelColorPicker->setEnabled( enable );
   d->RecordingButton->setEnabled( enable );
+  d->DeleteButton->setEnabled( enable );
 }
 
 //-----------------------------------------------------------------------------
@@ -463,6 +473,55 @@ void qSlicerPathReconstructionModuleWidget::onRecordingButtonClicked()
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerPathReconstructionModuleWidget::onDeleteButtonClicked()
+{
+  Q_D( qSlicerPathReconstructionModuleWidget );
+
+  vtkMRMLPathReconstructionNode* pathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->ParameterNodeComboBox->currentNode() );
+  if ( pathReconstructionNode == NULL )
+  {
+    qCritical() << Q_FUNC_INFO << ": invalid parameter node";
+    return;
+  }
+
+  int numberOfPaths = pathReconstructionNode->GetNumberOfPathPointsPairs();
+  pathReconstructionNode->SetNextCount( numberOfPaths );
+
+  int n = numberOfPaths - 1;
+  if ( n >= 0 )
+  {
+    this->mrmlScene()->RemoveNode( ( vtkMRMLNode* ) pathReconstructionNode->GetNthPathModelNode( n ) );
+    this->mrmlScene()->RemoveNode( ( vtkMRMLNode* ) pathReconstructionNode->GetNthPointsModelNode( n ) );
+  }
+
+  this->updateGUIFromMRML();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerPathReconstructionModuleWidget::onDeleteAllClicked()
+{
+  Q_D( qSlicerPathReconstructionModuleWidget );
+
+  vtkMRMLPathReconstructionNode* pathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->ParameterNodeComboBox->currentNode() );
+  if ( pathReconstructionNode == NULL )
+  {
+    qCritical() << Q_FUNC_INFO << ": invalid parameter node";
+    return;
+  }
+  
+  pathReconstructionNode->SetNextCount( 1 );
+
+  int numberOfPaths = pathReconstructionNode->GetNumberOfPathPointsPairs();
+  for ( int n = numberOfPaths - 1; n >= 0; n-- )
+  {
+    this->mrmlScene()->RemoveNode( ( vtkMRMLNode* ) pathReconstructionNode->GetNthPathModelNode( n ) );
+    this->mrmlScene()->RemoveNode( ( vtkMRMLNode* ) pathReconstructionNode->GetNthPointsModelNode( n ) );
+  }
+
+  this->updateGUIFromMRML();
+}
+
+//-----------------------------------------------------------------------------
 void qSlicerPathReconstructionModuleWidget::updateGUIFromMRML()
 {
   Q_D( qSlicerPathReconstructionModuleWidget );
@@ -539,6 +598,7 @@ void qSlicerPathReconstructionModuleWidget::updateGUIFromMRML()
     d->RecordingButton->setChecked( true );
     d->RecordingButton->setText( "Stop Recording" );
     // shouldn't need to support change of inputs while recording
+    d->DeleteButton->setEnabled( false );
     d->SamplingTransformComboBox->setEnabled( false );
     d->AnchorTransformComboBox->setEnabled( false );
     d->CollectPointsComboBox->setEnabled( false );
@@ -548,6 +608,12 @@ void qSlicerPathReconstructionModuleWidget::updateGUIFromMRML()
     d->NextCountSpinBox->setEnabled( false );
     d->PointsBaseNameLineEdit->setEnabled( false );
     d->PathBaseNameLineEdit->setEnabled( false );
+  }
+
+  int numberOfPaths = pathReconstructionNode->GetNumberOfPathPointsPairs();
+  if ( numberOfPaths > 0 )
+  {
+    d->RecordingButton->setEnabled( true );
   }
 
   this->blockAllSignals( false );
