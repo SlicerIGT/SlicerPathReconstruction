@@ -92,7 +92,7 @@ QStringList qSlicerPathReconstructionModule::contributors()const
 QStringList qSlicerPathReconstructionModule::dependencies()const
 {
 	QStringList dependencies;
-	dependencies << QString("SlicerIGT");
+	dependencies << QString("CollectPoints");
 	dependencies << QString("MarkupsToModel");
 	return dependencies;
 }
