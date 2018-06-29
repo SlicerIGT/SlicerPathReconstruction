@@ -30,8 +30,8 @@
 // Constants ------------------------------------------------------------------
 static const char* COLLECT_POINTS_ROLE = "CollectPointsRole";
 static const char* MARKUPS_TO_MODEL_ROLE = "MarkupsToModelRole";
-static const char* POINTS_MODEL_ROLE = "PointsModelRole";
-static const char* PATH_MODEL_ROLE   = "PathModelRole";
+static const char* POINTS_MODEL_ROLE_PREFIX = "PointsModelRole";
+static const char* PATH_MODEL_ROLE_PREFIX   = "PathModelRole";
 
 vtkMRMLNodeNewMacro( vtkMRMLPathReconstructionNode );
 
@@ -43,8 +43,7 @@ vtkMRMLPathReconstructionNode::vtkMRMLPathReconstructionNode()
 
   this->AddNodeReferenceRole( COLLECT_POINTS_ROLE );
   this->AddNodeReferenceRole( MARKUPS_TO_MODEL_ROLE );
-  this->AddNodeReferenceRole( POINTS_MODEL_ROLE );
-  this->AddNodeReferenceRole( PATH_MODEL_ROLE );
+  this->ReferenceRoleSuffixes = std::set< int >();
   this->PointsBaseName = "Points";
   this->PathBaseName = "Path";
   this->NextCount = 1;
@@ -65,12 +64,28 @@ vtkMRMLPathReconstructionNode::~vtkMRMLPathReconstructionNode()
 // ----------------------------------------------------------------------------
 void vtkMRMLPathReconstructionNode::WriteXML( ostream& of, int nIndent )
 {
+  // update reference roles if needed
+  if ( this->ArePointsPathRolesUsingBaseNameOnly() )
+  {
+    this->FixPointsPathRolesUsingBaseNameOnly();
+  }
+
   Superclass::WriteXML( of, nIndent ); // This will take care of referenced nodes
 
   vtkIndent indent( nIndent ); 
   of << indent << " PointsBaseName=\"" << this->PointsBaseName << "\"";
   of << indent << " PathBaseName=\"" << this->PathBaseName << "\"";
   of << indent << " NextCount=\"" << this->NextCount << "\"";
+  of << indent << " ReferenceRoleSuffixes=\"";
+  for ( std::set< int >::iterator suffixIterator = this->ReferenceRoleSuffixes.begin(); suffixIterator != this->ReferenceRoleSuffixes.end(); suffixIterator++ )
+  { 
+    if ( suffixIterator != this->ReferenceRoleSuffixes.begin() )
+    {
+      of << " ";
+    }
+    of << *suffixIterator;
+  }
+  of << "\"";
   // RecordingState should *not* be written to file. Recording should always
   // be initialized by the user. So default state is Stopped
 }
@@ -78,10 +93,26 @@ void vtkMRMLPathReconstructionNode::WriteXML( ostream& of, int nIndent )
 // ----------------------------------------------------------------------------
 void vtkMRMLPathReconstructionNode::PrintSelf( ostream& os, vtkIndent indent )
 {
+  // update reference roles if needed
+  if ( this->ArePointsPathRolesUsingBaseNameOnly() )
+  {
+    this->FixPointsPathRolesUsingBaseNameOnly();
+  }
+
   Superclass::PrintSelf( os, indent );
   os << indent << " PointsBaseName=\"" << this->PointsBaseName << "\"";
   os << indent << " PathBaseName=\"" << this->PathBaseName << "\"";
   os << indent << " NextCount=\"" << this->NextCount << "\"";
+  os << indent << " ReferenceRoleSuffixes=\"";
+  for ( std::set< int >::iterator suffixIterator = this->ReferenceRoleSuffixes.begin(); suffixIterator != this->ReferenceRoleSuffixes.end(); suffixIterator++ )
+  { 
+    if ( suffixIterator != this->ReferenceRoleSuffixes.begin() )
+    {
+      os << " ";
+    }
+    os << *suffixIterator;
+  }
+  os << "\"";
   os << indent << " RecordingState=\"" << this->RecordingState << "\"";
 }
 
@@ -114,6 +145,17 @@ void vtkMRMLPathReconstructionNode::ReadXMLAttributes( const char** atts )
       ss << attValue;
       ss >> this->NextCount;
       continue;
+    }
+    else if ( ! strcmp( attName, "ReferenceRoleSuffixes" ) )
+    {
+      this->ReferenceRoleSuffixes.clear();
+      std::stringstream suffixStream( attValue );
+      while ( ! suffixStream.eof() )
+      {
+        int suffix;
+        suffixStream >> suffix;
+        this->ReferenceRoleSuffixes.insert( suffix );
+      }
     }
     // Do not read RecordingState from file. Should be Stopped
     // until it is manually started by user.
@@ -208,7 +250,7 @@ void vtkMRMLPathReconstructionNode::SetCollectPointsNodeID( const char* nodeID )
   {
     return; // not changed
   }
-  this->SetNodeReferenceID( COLLECT_POINTS_ROLE, nodeID );
+  this->SetAndObserveNodeReferenceID( COLLECT_POINTS_ROLE, nodeID );
 }
 
 //------------------------------------------------------------------------------
@@ -250,105 +292,121 @@ void vtkMRMLPathReconstructionNode::SetMarkupsToModelNodeID( const char* nodeID 
   {
     return; // not changed
   }
-  this->SetNodeReferenceID( MARKUPS_TO_MODEL_ROLE, nodeID );
+  this->SetAndObserveNodeReferenceID( MARKUPS_TO_MODEL_ROLE, nodeID );
 }
 
 //------------------------------------------------------------------------------
 vtkMRMLModelNode* vtkMRMLPathReconstructionNode::GetNthPointsModelNode( int n )
 {
-  vtkMRMLModelNode* node = vtkMRMLModelNode::SafeDownCast( this->GetNthNodeReference( POINTS_MODEL_ROLE, n ) );
+  // update reference roles if needed
+  if ( this->ArePointsPathRolesUsingBaseNameOnly() )
+  {
+    this->FixPointsPathRolesUsingBaseNameOnly();
+  }
+
+  std::string referenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, n );
+  vtkMRMLModelNode* node = vtkMRMLModelNode::SafeDownCast( this->GetNodeReference( referenceRole.c_str() ) );
   return node;
 }
 
 //------------------------------------------------------------------------------
 vtkMRMLModelNode* vtkMRMLPathReconstructionNode::GetNthPathModelNode( int n )
 {
-  vtkMRMLModelNode* node = vtkMRMLModelNode::SafeDownCast( this->GetNthNodeReference( PATH_MODEL_ROLE, n ) );
+  // update reference roles if needed
+  if ( this->ArePointsPathRolesUsingBaseNameOnly() )
+  {
+    this->FixPointsPathRolesUsingBaseNameOnly();
+  }
+
+  std::string referenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, n );
+  vtkMRMLModelNode* node = vtkMRMLModelNode::SafeDownCast( this->GetNodeReference( referenceRole.c_str() ) );
   return node;
 }
 
 //------------------------------------------------------------------------------
 int vtkMRMLPathReconstructionNode::GetNumberOfPathPointsPairs()
 {
-  int numberOfPointsNodes = this->GetNumberOfNodeReferences( POINTS_MODEL_ROLE );
-  int numberOfPathNodes = this->GetNumberOfNodeReferences( PATH_MODEL_ROLE );
-  if ( numberOfPointsNodes != numberOfPathNodes )
-  {
-    vtkWarningMacro( "The number of points model nodes " << numberOfPointsNodes << " and " <<
-                     "The number of path model nodes " << numberOfPathNodes << " are not equal. " <<
-                     "This is a bug, and unexpected results may occur. Please save your scene and report this." <<
-                     "Returning the least of the two values." );
-  }
-
-  return vtkMath::Min( numberOfPointsNodes, numberOfPathNodes );
+  return this->ReferenceRoleSuffixes.size();
 }
 
 //------------------------------------------------------------------------------
 void vtkMRMLPathReconstructionNode::AddPointsPathPairModelNodeIDs( const char* pointsNodeID, const char* pathNodeID )
 {
-  int numberOfPointsNodes = this->GetNumberOfNodeReferences( POINTS_MODEL_ROLE );
-  int numberOfPathNodes = this->GetNumberOfNodeReferences( PATH_MODEL_ROLE );
-  if ( numberOfPointsNodes != numberOfPathNodes )
+  // update reference roles if needed
+  if ( this->ArePointsPathRolesUsingBaseNameOnly() )
   {
-    vtkErrorMacro( "The number of points model nodes " << numberOfPointsNodes << " and " <<
-                   "The number of path model nodes " << numberOfPathNodes << " are not equal. " <<
-                   "This is a bug, and unexpected results may occur. Please save your scene and report this." <<
-                   "No nodes added." );
-    return;
+    this->FixPointsPathRolesUsingBaseNameOnly();
   }
 
-  if ( IsModelNodeBeingObserved( pointsNodeID ) )
+  if ( this->IsModelNodeBeingObserved( pointsNodeID ) )
   {
     vtkErrorMacro( "Model node with ID " << pointsNodeID << " is already in a refence role. No nodes added." );
     return;
   }
 
-  if ( IsModelNodeBeingObserved( pathNodeID ) )
+  if ( this->IsModelNodeBeingObserved( pathNodeID ) )
   {
     vtkErrorMacro( "Model node with ID " << pathNodeID << " is already in a refence role. No nodes added." );
     return;
   }
 
-  this->AddNodeReferenceID( POINTS_MODEL_ROLE, pointsNodeID );
-  this->AddNodeReferenceID( PATH_MODEL_ROLE, pathNodeID );
+  int largestNInSet = *( this->ReferenceRoleSuffixes.lower_bound( VTK_INT_MAX ) );
+  int newN = largestNInSet + 1; // Get largest element, add 1
+  this->ReferenceRoleSuffixes.insert( newN );
+
+  std::string pointsReferenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, newN );
+  this->AddNodeReferenceRole( pointsReferenceRole.c_str() );
+  this->SetAndObserveNodeReferenceID( pointsReferenceRole.c_str(), pointsNodeID );
+
+  std::string pathReferenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, newN );
+  this->AddNodeReferenceRole( pathReferenceRole.c_str() );
+  this->SetAndObserveNodeReferenceID( pathReferenceRole.c_str(), pathNodeID );
 }
 
 //------------------------------------------------------------------------------
 void vtkMRMLPathReconstructionNode::RemoveNthPointsPathPair( int n )
 {
-  int numberOfPointsNodes = this->GetNumberOfNodeReferences( POINTS_MODEL_ROLE );
-  int numberOfPathNodes = this->GetNumberOfNodeReferences( PATH_MODEL_ROLE );
-  if ( numberOfPointsNodes != numberOfPathNodes )
+  // update reference roles if needed
+  if ( this->ArePointsPathRolesUsingBaseNameOnly() )
   {
-    vtkErrorMacro( "The number of points model nodes " << numberOfPointsNodes << " and " <<
-                   "The number of path model nodes " << numberOfPathNodes << " are not equal. " <<
-                   "This is a bug, and unexpected results may occur. Please save your scene and report this. " <<
-                   "No nodes removed.");
+    this->FixPointsPathRolesUsingBaseNameOnly();
+  }
+
+  // check if it contains this node (note: std::set::contains will be added in C++20)
+  if ( this->ReferenceRoleSuffixes.find( n ) == this->ReferenceRoleSuffixes.end() )
+  {
+    vtkErrorMacro( "Nth pair with n = " << n << " does not exist. No nodes removed." );
     return;
   }
 
-  int numberOfPointsPathPairs = numberOfPointsNodes;
-  if ( n >= numberOfPointsPathPairs )
-  {
-    vtkErrorMacro( "Number of points-path pairs is " << numberOfPointsPathPairs << ". " <<
-                   "N " << n << " is out of range. No nodes removed." );
-    return;
-  }
+  std::string pointsReferenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, n );
+  this->RemoveNodeReferenceIDs( pointsReferenceRole.c_str() );
 
-  this->RemoveNthNodeReferenceID( POINTS_MODEL_ROLE, n );
-  this->RemoveNthNodeReferenceID( PATH_MODEL_ROLE, n );
+  std::string pathReferenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, n );
+  this->RemoveNodeReferenceIDs( pathReferenceRole.c_str() );
+  
+  this->ReferenceRoleSuffixes.erase( n );
+}
+
+//------------------------------------------------------------------------------
+std::string vtkMRMLPathReconstructionNode::GetNodeReferenceRole( const char* prefix, int suffix )
+{
+  std::stringstream nodeReferenceRoleStream;
+  nodeReferenceRoleStream << prefix << suffix;
+  std::string nodeReferenceRoleString = nodeReferenceRoleStream.str();
+  return nodeReferenceRoleString;
 }
 
 //------------------------------------------------------------------------------
 bool vtkMRMLPathReconstructionNode::IsModelNodeBeingObserved( const char* nodeID )
 {
-  int numberOfPointsNodes = this->GetNumberOfNodeReferences( POINTS_MODEL_ROLE );
-  for ( int pointsNodeIndex = 0; pointsNodeIndex < numberOfPointsNodes; pointsNodeIndex++ )
+  for ( std::set< int >::iterator suffixIterator = this->ReferenceRoleSuffixes.begin(); suffixIterator != this->ReferenceRoleSuffixes.end(); suffixIterator++ )
   {
-    vtkMRMLModelNode* pointsNode = vtkMRMLModelNode::SafeDownCast( this->GetNthNodeReference( POINTS_MODEL_ROLE, pointsNodeIndex ) );
+    std::string pointsReferenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, *suffixIterator );
+    vtkMRMLModelNode* pointsNode = vtkMRMLModelNode::SafeDownCast( this->GetNodeReference( pointsReferenceRole.c_str() ) );
     if ( pointsNode == NULL )
     {
-      vtkErrorMacro( "Points node at index " << pointsNodeIndex << " is not a model node. " <<
+      vtkErrorMacro( "Points node number n = " << *suffixIterator << " is not a model node. " <<
                      "This is indicative of a bug. Please save the scene and report this." );
       continue;
     }
@@ -357,15 +415,11 @@ bool vtkMRMLPathReconstructionNode::IsModelNodeBeingObserved( const char* nodeID
     {
       return true;
     }
-  }
-
-  int numberOfPathNodes = this->GetNumberOfNodeReferences( PATH_MODEL_ROLE );
-  for ( int pathNodeIndex = 0; pathNodeIndex < numberOfPathNodes; pathNodeIndex++ )
-  {
-    vtkMRMLModelNode* pathNode = vtkMRMLModelNode::SafeDownCast( this->GetNthNodeReference( PATH_MODEL_ROLE, pathNodeIndex ) );
+    std::string pathReferenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, *suffixIterator );
+    vtkMRMLModelNode* pathNode = vtkMRMLModelNode::SafeDownCast( this->GetNodeReference( pathReferenceRole.c_str() ) );
     if ( pathNode == NULL )
     {
-      vtkErrorMacro( "Points node at index " << pathNodeIndex << " is not a model node. " <<
+      vtkErrorMacro( "Points node number n = " << *suffixIterator << " is not a model node. " <<
                      "This is indicative of a bug. Please save the scene and report this." );
       continue;
     }
@@ -377,6 +431,72 @@ bool vtkMRMLPathReconstructionNode::IsModelNodeBeingObserved( const char* nodeID
   }
 
   return false;
+}
+
+//------------------------------------------------------------------------------
+bool vtkMRMLPathReconstructionNode::ArePointsPathRolesUsingBaseNameOnly()
+{
+  // Current implementation uses a base role name plus a number.
+  // If the number is missing, then the role name(s) need to be updated.
+  vtkMRMLNode* pointsNode = this->GetNodeReference( POINTS_MODEL_ROLE_PREFIX );
+  if ( pointsNode != NULL )
+  {
+    return true;
+  }
+
+  vtkMRMLNode* pathNode = this->GetNodeReference( PATH_MODEL_ROLE_PREFIX );
+  if ( pathNode != NULL )
+  {
+    return true;
+  }
+
+  return false;
+}
+
+//------------------------------------------------------------------------------
+void vtkMRMLPathReconstructionNode::FixPointsPathRolesUsingBaseNameOnly()
+{
+  vtkInfoMacro( "Attempting to update role names in vtkMRMLPathReconstructionNode " << this->GetName() );
+
+  int numberPointsReferences = ( this->GetNumberOfNodeReferences( POINTS_MODEL_ROLE_PREFIX ) );
+  int numberPathReferences = ( this->GetNumberOfNodeReferences( PATH_MODEL_ROLE_PREFIX ) );
+
+  if ( numberPointsReferences != numberPathReferences )
+  {
+    vtkWarningMacro( "Failed to update role names in vtkMRMLPathReconstructionNode " << this->GetName() <<
+                     " - there are " << numberPointsReferences << " points and " << numberPathReferences << " paths." );
+    return;
+  }
+
+  int numberOfPointsPathPairs = numberPathReferences;
+  for ( int pointsPathPairIndex = numberOfPointsPathPairs - 1; pointsPathPairIndex >= 0; pointsPathPairIndex-- )
+  {
+    vtkMRMLModelNode* pointsNode = vtkMRMLModelNode::SafeDownCast( this->GetNthNodeReference( POINTS_MODEL_ROLE_PREFIX, pointsPathPairIndex ) );
+    if ( pointsNode == NULL )
+    {
+      vtkWarningMacro( "Failed to update role names in vtkMRMLPathReconstructionNode " << this->GetName() <<
+      " - points node number " << pointsPathPairIndex << " is null." );
+      return;
+    }
+    std::string newPointsReferenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, pointsPathPairIndex );
+    this->AddNodeReferenceRole( newPointsReferenceRole.c_str() );
+    this->SetAndObserveNodeReferenceID( newPointsReferenceRole.c_str(), pointsNode->GetID() );
+    this->RemoveNthNodeReferenceID( POINTS_MODEL_ROLE_PREFIX, pointsPathPairIndex );
+
+    vtkMRMLModelNode* pathNode = vtkMRMLModelNode::SafeDownCast( this->GetNthNodeReference( PATH_MODEL_ROLE_PREFIX, pointsPathPairIndex ) );
+    if ( pathNode == NULL )
+    {
+      vtkWarningMacro( "Failed to update role names in vtkMRMLPathReconstructionNode " << this->GetName() <<
+      " - path node number " << pointsPathPairIndex << " is null." );
+      return;
+    }
+    std::string newPathReferenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, pointsPathPairIndex );
+    this->AddNodeReferenceRole( newPathReferenceRole.c_str() );
+    this->SetAndObserveNodeReferenceID( newPathReferenceRole.c_str(), pathNode->GetID() );
+    this->RemoveNthNodeReferenceID( PATH_MODEL_ROLE_PREFIX, pointsPathPairIndex );
+  }
+
+  vtkInfoMacro( "Successfully updated role names in vtkMRMLPathReconstructionNode " << this->GetName() );
 }
 
 //------------------------------------------------------------------------------

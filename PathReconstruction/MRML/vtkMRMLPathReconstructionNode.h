@@ -132,11 +132,11 @@ private:
   std::string PathBaseName;
   int NextCount;
 
+  // These are the node reference ID suffixes (append these to the prefixes defined in the .cxx file to get node reference ID's)
+  std::set< int > ReferenceRoleSuffixes;
+
   // Determine when new paths are being recorded. Options are stopped and recording.
   int RecordingState;
-
-  // helper to avoid duplicates in the list. Duplicates should never occur.
-  bool IsModelNodeBeingObserved( const char* nodeID );
 
   // store the color selections made in this module (need to be copied each time a new model node is created)
   double PointsColorRed;
@@ -145,6 +145,16 @@ private:
   double PathColorRed;
   double PathColorGreen;
   double PathColorBlue;
+
+  // helper to avoid duplicates in the list. Duplicates should never occur.
+  bool IsModelNodeBeingObserved( const char* nodeID );
+
+  // helper to get node ID's that have prefix+suffix
+  std::string GetNodeReferenceRole( const char* prefix, int suffix );
+
+  // update the reference roles from older versions
+  bool ArePointsPathRolesUsingBaseNameOnly();
+  void FixPointsPathRolesUsingBaseNameOnly();
 };
 
 #endif
