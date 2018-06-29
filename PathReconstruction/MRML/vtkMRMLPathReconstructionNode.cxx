@@ -136,7 +136,7 @@ void vtkMRMLPathReconstructionNode::ReadXMLAttributes( const char** atts )
     }
     else if ( ! strcmp( attName, "PathBaseName" ) )
     {
-      this->PointsBaseName = std::string(attValue);
+      this->PathBaseName = std::string(attValue);
       continue;
     }
     else if ( ! strcmp( attName, "NextCount" ) )
