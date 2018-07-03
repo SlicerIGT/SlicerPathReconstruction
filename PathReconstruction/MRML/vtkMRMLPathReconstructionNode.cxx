@@ -471,6 +471,8 @@ void vtkMRMLPathReconstructionNode::FixPointsPathRolesUsingBaseNameOnly()
   int numberOfPointsPathPairs = numberPathReferences;
   for ( int pointsPathPairIndex = numberOfPointsPathPairs - 1; pointsPathPairIndex >= 0; pointsPathPairIndex-- )
   {
+    this->ReferenceRoleSuffixes.insert( pointsPathPairIndex );
+
     vtkMRMLModelNode* pointsNode = vtkMRMLModelNode::SafeDownCast( this->GetNthNodeReference( POINTS_MODEL_ROLE_PREFIX, pointsPathPairIndex ) );
     if ( pointsNode == NULL )
     {
