@@ -296,7 +296,7 @@ void vtkMRMLPathReconstructionNode::SetMarkupsToModelNodeID( const char* nodeID 
 }
 
 //------------------------------------------------------------------------------
-vtkMRMLModelNode* vtkMRMLPathReconstructionNode::GetNthPointsModelNode( int n )
+vtkMRMLModelNode* vtkMRMLPathReconstructionNode::GetPointsModelNodeBySuffix( int suffix )
 {
   // update reference roles if needed
   if ( this->ArePointsPathRolesUsingBaseNameOnly() )
@@ -304,13 +304,13 @@ vtkMRMLModelNode* vtkMRMLPathReconstructionNode::GetNthPointsModelNode( int n )
     this->FixPointsPathRolesUsingBaseNameOnly();
   }
 
-  std::string referenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, n );
+  std::string referenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, suffix );
   vtkMRMLModelNode* node = vtkMRMLModelNode::SafeDownCast( this->GetNodeReference( referenceRole.c_str() ) );
   return node;
 }
 
 //------------------------------------------------------------------------------
-vtkMRMLModelNode* vtkMRMLPathReconstructionNode::GetNthPathModelNode( int n )
+vtkMRMLModelNode* vtkMRMLPathReconstructionNode::GetPathModelNodeBySuffix( int suffix )
 {
   // update reference roles if needed
   if ( this->ArePointsPathRolesUsingBaseNameOnly() )
@@ -318,7 +318,7 @@ vtkMRMLModelNode* vtkMRMLPathReconstructionNode::GetNthPathModelNode( int n )
     this->FixPointsPathRolesUsingBaseNameOnly();
   }
 
-  std::string referenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, n );
+  std::string referenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, suffix );
   vtkMRMLModelNode* node = vtkMRMLModelNode::SafeDownCast( this->GetNodeReference( referenceRole.c_str() ) );
   return node;
 }
@@ -327,6 +327,18 @@ vtkMRMLModelNode* vtkMRMLPathReconstructionNode::GetNthPathModelNode( int n )
 int vtkMRMLPathReconstructionNode::GetNumberOfPathPointsPairs()
 {
   return this->ReferenceRoleSuffixes.size();
+}
+
+//------------------------------------------------------------------------------
+int vtkMRMLPathReconstructionNode::GetSuffixOfLastPathPointsPairAdded()
+{
+  if ( this->GetNumberOfPathPointsPairs() <= 0 )
+  {
+    return -1;
+  }
+
+  int largestNumberInSet = *( this->ReferenceRoleSuffixes.rbegin() );
+  return largestNumberInSet;
 }
 
 //------------------------------------------------------------------------------
@@ -350,21 +362,24 @@ void vtkMRMLPathReconstructionNode::AddPointsPathPairModelNodeIDs( const char* p
     return;
   }
 
-  int largestNInSet = *( this->ReferenceRoleSuffixes.lower_bound( VTK_INT_MAX ) );
-  int newN = largestNInSet + 1; // Get largest element, add 1
-  this->ReferenceRoleSuffixes.insert( newN );
+  int newSuffix = 0;
+  if ( this->GetNumberOfPathPointsPairs() > 0 )
+  {
+    newSuffix = this->GetSuffixOfLastPathPointsPairAdded() + 1; // Get largest element, add 1
+  }
+  this->ReferenceRoleSuffixes.insert( newSuffix );
 
-  std::string pointsReferenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, newN );
+  std::string pointsReferenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, newSuffix );
   this->AddNodeReferenceRole( pointsReferenceRole.c_str() );
   this->SetAndObserveNodeReferenceID( pointsReferenceRole.c_str(), pointsNodeID );
 
-  std::string pathReferenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, newN );
+  std::string pathReferenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, newSuffix );
   this->AddNodeReferenceRole( pathReferenceRole.c_str() );
   this->SetAndObserveNodeReferenceID( pathReferenceRole.c_str(), pathNodeID );
 }
 
 //------------------------------------------------------------------------------
-void vtkMRMLPathReconstructionNode::RemoveNthPointsPathPair( int n )
+void vtkMRMLPathReconstructionNode::RemovePointsPathPairBySuffix( int suffix )
 {
   // update reference roles if needed
   if ( this->ArePointsPathRolesUsingBaseNameOnly() )
@@ -373,19 +388,19 @@ void vtkMRMLPathReconstructionNode::RemoveNthPointsPathPair( int n )
   }
 
   // check if it contains this node (note: std::set::contains will be added in C++20)
-  if ( this->ReferenceRoleSuffixes.find( n ) == this->ReferenceRoleSuffixes.end() )
+  if ( this->ReferenceRoleSuffixes.find( suffix ) == this->ReferenceRoleSuffixes.end() )
   {
-    vtkErrorMacro( "Nth pair with n = " << n << " does not exist. No nodes removed." );
+    vtkErrorMacro( "Points-path pair with suffix = " << suffix << " does not exist. No nodes removed." );
     return;
   }
 
-  std::string pointsReferenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, n );
+  std::string pointsReferenceRole = this->GetNodeReferenceRole( POINTS_MODEL_ROLE_PREFIX, suffix );
   this->RemoveNodeReferenceIDs( pointsReferenceRole.c_str() );
 
-  std::string pathReferenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, n );
+  std::string pathReferenceRole = this->GetNodeReferenceRole( PATH_MODEL_ROLE_PREFIX, suffix );
   this->RemoveNodeReferenceIDs( pathReferenceRole.c_str() );
   
-  this->ReferenceRoleSuffixes.erase( n );
+  this->ReferenceRoleSuffixes.erase( suffix );
 }
 
 //------------------------------------------------------------------------------

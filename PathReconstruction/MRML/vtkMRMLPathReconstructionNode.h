@@ -115,11 +115,12 @@ public:
   vtkSetMacro( PathBaseName, std::string );
   
   // outputs
-  vtkMRMLModelNode* GetNthPointsModelNode( int n );
-  vtkMRMLModelNode* GetNthPathModelNode( int n );
+  vtkMRMLModelNode* GetPointsModelNodeBySuffix( int suffix );
+  vtkMRMLModelNode* GetPathModelNodeBySuffix( int suffix );
   int GetNumberOfPathPointsPairs();
+  int GetSuffixOfLastPathPointsPairAdded(); // returns -1 if there are no pairs
   void AddPointsPathPairModelNodeIDs( const char* pointsNodeID, const char* pathNodeID );
-  void RemoveNthPointsPathPair( int n );
+  void RemovePointsPathPairBySuffix( int suffix );
 
   static int RecordingStateFromString( const char* name );
   static const char* RecordingStateAsString( int id );

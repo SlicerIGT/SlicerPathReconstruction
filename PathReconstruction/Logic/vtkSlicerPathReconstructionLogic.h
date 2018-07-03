@@ -51,6 +51,7 @@ public:
 
   bool IsRecordingPossible( vtkMRMLPathReconstructionNode* pathReconstructionNode );
   void ToggleRecording( vtkMRMLPathReconstructionNode* pathReconstructionNode );
+  void DeleteLastPath( vtkMRMLPathReconstructionNode* pathReconstructionNode );
 
 protected:
   vtkSlicerPathReconstructionLogic();

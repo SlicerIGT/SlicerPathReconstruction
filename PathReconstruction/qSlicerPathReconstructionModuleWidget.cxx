@@ -485,14 +485,15 @@ void qSlicerPathReconstructionModuleWidget::onDeleteButtonClicked()
   }
 
   int numberOfPaths = pathReconstructionNode->GetNumberOfPathPointsPairs();
-  pathReconstructionNode->SetNextCount( numberOfPaths );
-
-  int n = numberOfPaths - 1;
-  if ( n >= 0 )
+  if ( numberOfPaths <= 0 )
   {
-    this->mrmlScene()->RemoveNode( ( vtkMRMLNode* ) pathReconstructionNode->GetNthPathModelNode( n ) );
-    this->mrmlScene()->RemoveNode( ( vtkMRMLNode* ) pathReconstructionNode->GetNthPointsModelNode( n ) );
+    qWarning() << Q_FUNC_INFO << "Cannot delete last path because there are no paths";
+    return;
   }
+
+  pathReconstructionNode->SetNextCount( numberOfPaths ); // reduce by one
+
+  d->logic()->DeleteLastPath( pathReconstructionNode );
 
   this->updateGUIFromMRML();
 }
@@ -511,11 +512,16 @@ void qSlicerPathReconstructionModuleWidget::onDeleteAllClicked()
   
   pathReconstructionNode->SetNextCount( 1 );
 
-  int numberOfPaths = pathReconstructionNode->GetNumberOfPathPointsPairs();
-  for ( int n = numberOfPaths - 1; n >= 0; n-- )
+  int whileLoopSafetyCounter = 500;
+  while ( pathReconstructionNode->GetNumberOfPathPointsPairs() > 0 && whileLoopSafetyCounter > 0 )
   {
-    this->mrmlScene()->RemoveNode( ( vtkMRMLNode* ) pathReconstructionNode->GetNthPathModelNode( n ) );
-    this->mrmlScene()->RemoveNode( ( vtkMRMLNode* ) pathReconstructionNode->GetNthPointsModelNode( n ) );
+    d->logic()->DeleteLastPath( pathReconstructionNode );
+    whileLoopSafetyCounter--;
+  }
+
+  if ( whileLoopSafetyCounter <= 0 )
+  {
+    qCritical() << Q_FUNC_INFO << ": tried to delete all paths, but may have gotten caught in infinite loop. Stopping.";
   }
 
   this->updateGUIFromMRML();

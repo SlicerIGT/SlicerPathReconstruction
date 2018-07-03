@@ -117,6 +117,37 @@ void vtkSlicerPathReconstructionLogic::OnMRMLSceneNodeRemoved( vtkMRMLNode* node
 }
 
 //------------------------------------------------------------------------------
+void vtkSlicerPathReconstructionLogic::DeleteLastPath( vtkMRMLPathReconstructionNode* pathReconstructionNode )
+{
+  if ( pathReconstructionNode == NULL )
+  {
+    vtkErrorMacro( "Path reconstruction node is not set. Cannot delete last path." );
+    return;
+  }
+
+  if ( pathReconstructionNode->GetNumberOfPathPointsPairs() <= 0 )
+  {
+    vtkWarningMacro( "Path reconstruction node has no paths. Cannot delete last path." );
+    return;
+  }
+
+  int lastAddedSuffix = pathReconstructionNode->GetSuffixOfLastPathPointsPairAdded();
+  vtkMRMLNode* pathModelNode = ( vtkMRMLNode* ) pathReconstructionNode->GetPathModelNodeBySuffix( lastAddedSuffix );
+  vtkMRMLNode* pointsModelNode = ( vtkMRMLNode* ) pathReconstructionNode->GetPointsModelNodeBySuffix( lastAddedSuffix );
+  pathReconstructionNode->RemovePointsPathPairBySuffix( lastAddedSuffix );
+  vtkMRMLScene* scene = pathReconstructionNode->GetScene();
+  if ( scene != NULL )
+  {
+    scene->RemoveNode( pathModelNode );
+    scene->RemoveNode( pointsModelNode );
+  }
+  else
+  {
+    vtkWarningMacro( "Scene is null. Cannot delete points and path models from the scene." );
+  }
+}
+
+//------------------------------------------------------------------------------
 bool vtkSlicerPathReconstructionLogic::IsRecordingPossible( vtkMRMLPathReconstructionNode* pathReconstructionNode )
 {
   if ( pathReconstructionNode == NULL ||
