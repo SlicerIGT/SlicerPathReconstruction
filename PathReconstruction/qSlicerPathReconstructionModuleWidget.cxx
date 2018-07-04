@@ -136,15 +136,16 @@ void qSlicerPathReconstructionModuleWidget::enter()
     vtkMRMLPathReconstructionNode* pathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( node );
     if ( pathReconstructionNode == NULL )
     {
-      qCritical( "Failed to create module node" );
+      qCritical( "Failed to create module node vtkMRMLPathReconstructionNode" );
       return;
     }
     d->ParameterNodeComboBox->setCurrentNode( pathReconstructionNode );
     pathReconstructionNode->CreateDefaultCollectPointsNode();
     pathReconstructionNode->CreateDefaultMarkupsToModelNode();
   }
-
-  this->updateGUIFromMRML();
+ 
+  // Need to update the GUI so that it observes whichever parameter node is selected
+  this->onParameterNodeSelected();
 }
 
 //-----------------------------------------------------------------------------
