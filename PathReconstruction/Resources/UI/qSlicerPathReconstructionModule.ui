@@ -166,7 +166,7 @@
         <item row="0" column="0">
          <widget class="qMRMLNodeComboBox" name="MarkupsToModelComboBox">
           <property name="toolTip">
-           <string>Select a model node to store the path</string>
+           <string>This node contains the parameters for generating a model from the collected points</string>
           </property>
           <property name="nodeTypes">
            <stringlist>
@@ -183,6 +183,9 @@
         </item>
         <item row="0" column="1">
          <widget class="ctkColorPickerButton" name="MarkupsToModelColorPicker">
+          <property name="toolTip">
+           <string>Change the color of generated models</string>
+          </property>
           <property name="displayColorName">
            <bool>false</bool>
           </property>
@@ -195,7 +198,7 @@
         <item row="0" column="0">
          <widget class="qMRMLNodeComboBox" name="CollectPointsComboBox">
           <property name="toolTip">
-           <string>Select a model node to store the points</string>
+           <string>This node contains the parameters for point collection</string>
           </property>
           <property name="nodeTypes">
            <stringlist>
@@ -212,6 +215,9 @@
         </item>
         <item row="0" column="1">
          <widget class="ctkColorPickerButton" name="CollectPointsColorPicker">
+          <property name="toolTip">
+           <string>Change the color of collected points</string>
+          </property>
           <property name="displayColorName">
            <bool>false</bool>
           </property>
