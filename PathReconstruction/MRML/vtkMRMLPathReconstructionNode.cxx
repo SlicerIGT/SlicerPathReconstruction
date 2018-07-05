@@ -331,7 +331,7 @@ void vtkMRMLPathReconstructionNode::ApplyDefaultSettingsToMarkupsToModelNode( vt
     return;
   }
   markupsToModelNode->SetModelType( vtkMRMLMarkupsToModelNode::Curve );
-  markupsToModelNode->SetInterpolationType( vtkMRMLMarkupsToModelNode::Linear ); // TODO: Replace with moving least squares when available
+  markupsToModelNode->SetCurveType( vtkMRMLMarkupsToModelNode::Linear ); // TODO: Replace with moving least squares when available
   markupsToModelNode->SetPointParameterType( vtkMRMLMarkupsToModelNode::MinimumSpanningTree );
   markupsToModelNode->SetAutoUpdateOutput( false );
 }
