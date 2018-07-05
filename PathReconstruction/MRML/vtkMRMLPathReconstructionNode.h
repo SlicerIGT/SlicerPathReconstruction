@@ -76,6 +76,8 @@ protected:
   void operator=( const vtkMRMLPathReconstructionNode& );
 
 public:
+  void ProcessMRMLEvents( vtkObject* caller, unsigned long event, void* callData ) VTK_OVERRIDE;
+
   // Convenient access to the corresponding nodes in the CollectPoints module.
   vtkMRMLTransformNode* GetSamplingTransformNode();
   vtkMRMLTransformNode* GetAnchorTransformNode();
@@ -91,28 +93,28 @@ public:
   void SetPathColor( double red, double green, double blue );
 
   vtkGetMacro( RecordingState, int );
-  vtkSetMacro( RecordingState, int );
+  void SetRecordingState( int );
   void SetRecordingStateToStopped() { this->SetRecordingState( Stopped ); }
   void SetRecordingStateToRecording() { this->SetRecordingState( Recording ); }
 
   vtkGetMacro( NextCount, int );
-  vtkSetMacro( NextCount, int );
+  void SetNextCount( int );
 
   void CreateDefaultCollectPointsNode();
   void ApplyDefaultSettingsToCollectPointsNode( vtkMRMLCollectPointsNode* node );
   vtkMRMLCollectPointsNode* GetCollectPointsNode();
-  void SetCollectPointsNodeID( const char* nodeID );
+  void SetAndObserveCollectPointsNodeID( const char* nodeID );
 
   vtkGetMacro( PointsBaseName, std::string );
-  vtkSetMacro( PointsBaseName, std::string );
+  void SetPointsBaseName( std::string );
 
   void CreateDefaultMarkupsToModelNode();
   void ApplyDefaultSettingsToMarkupsToModelNode( vtkMRMLMarkupsToModelNode* node );
   vtkMRMLMarkupsToModelNode* GetMarkupsToModelNode();
-  void SetMarkupsToModelNodeID( const char* nodeID );
+  void SetAndObserveMarkupsToModelNodeID( const char* nodeID );
 
   vtkGetMacro( PathBaseName, std::string );
-  vtkSetMacro( PathBaseName, std::string );
+  void SetPathBaseName( std::string );
   
   // outputs
   vtkMRMLModelNode* GetPointsModelNodeBySuffix( int suffix );

@@ -41,7 +41,10 @@ vtkMRMLPathReconstructionNode::vtkMRMLPathReconstructionNode()
   this->HideFromEditorsOff();
   this->SetSaveWithScene( true );
 
-  this->AddNodeReferenceRole( COLLECT_POINTS_ROLE );
+  vtkSmartPointer< vtkIntArray > observedCollectPointsEvents = vtkSmartPointer< vtkIntArray >::New();
+  observedCollectPointsEvents->InsertNextValue( vtkMRMLCollectPointsNode::InputDataModifiedEvent );
+  this->AddNodeReferenceRole( COLLECT_POINTS_ROLE, NULL, observedCollectPointsEvents );
+
   this->AddNodeReferenceRole( MARKUPS_TO_MODEL_ROLE );
   this->ReferenceRoleSuffixes = std::set< int >();
   this->PointsBaseName = "Points";
@@ -172,6 +175,27 @@ void vtkMRMLPathReconstructionNode::Copy( vtkMRMLNode *anode )
 }
 
 //------------------------------------------------------------------------------
+void vtkMRMLPathReconstructionNode::ProcessMRMLEvents( vtkObject* caller, unsigned long event, void* callData )
+{
+  Superclass::ProcessMRMLEvents( caller, event, callData );
+
+  vtkMRMLNode* callerNode = vtkMRMLNode::SafeDownCast( caller );
+  if ( callerNode == NULL )
+  {
+    return;
+  }
+
+  if ( callerNode == this->GetCollectPointsNode() )
+  {
+    if ( event == vtkMRMLCollectPointsNode::InputDataModifiedEvent )
+    {
+      this->Modified(); // An input was modified, modified event signals either input or output changed
+      this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
 vtkMRMLTransformNode* vtkMRMLPathReconstructionNode::GetSamplingTransformNode()
 {
   vtkMRMLCollectPointsNode* collectPointsNode = this->GetCollectPointsNode();
@@ -196,12 +220,45 @@ vtkMRMLTransformNode* vtkMRMLPathReconstructionNode::GetAnchorTransformNode()
 }
 
 //------------------------------------------------------------------------------
+void vtkMRMLPathReconstructionNode::SetRecordingState( int newState )
+{
+  this->RecordingState = newState;
+  this->Modified();
+  this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
+}
+
+//------------------------------------------------------------------------------
+void vtkMRMLPathReconstructionNode::SetNextCount( int newCount )
+{
+  this->NextCount = newCount;
+  this->Modified();
+  this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
+}
+
+//------------------------------------------------------------------------------
+void vtkMRMLPathReconstructionNode::SetPointsBaseName( std::string newBaseName )
+{
+  this->PointsBaseName = newBaseName;
+  this->Modified();
+  this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
+}
+
+//------------------------------------------------------------------------------
+void vtkMRMLPathReconstructionNode::SetPathBaseName( std::string newBaseName )
+{
+  this->PathBaseName = newBaseName;
+  this->Modified();
+  this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
+}
+
+//------------------------------------------------------------------------------
 void vtkMRMLPathReconstructionNode::SetPointsColor( double red, double green, double blue )
 {
   this->PointsColorRed = red;
   this->PointsColorGreen = green;
   this->PointsColorBlue = blue;
   this->Modified();
+  this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
 }
 
 //------------------------------------------------------------------------------
@@ -211,6 +268,7 @@ void vtkMRMLPathReconstructionNode::SetPathColor( double red, double green, doub
   this->PathColorGreen = green;
   this->PathColorBlue = blue;
   this->Modified();
+  this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
 }
 
 //------------------------------------------------------------------------------
@@ -220,7 +278,7 @@ void vtkMRMLPathReconstructionNode::CreateDefaultCollectPointsNode()
   collectPointsNode->SetName( "CollectPointsNode_PathReconstruction" );
   this->ApplyDefaultSettingsToCollectPointsNode( collectPointsNode );
   this->GetScene()->AddNode( collectPointsNode );
-  this->SetCollectPointsNodeID( collectPointsNode->GetID() );
+  this->SetAndObserveCollectPointsNodeID( collectPointsNode->GetID() );
 }
 
 //------------------------------------------------------------------------------
@@ -243,7 +301,7 @@ vtkMRMLCollectPointsNode* vtkMRMLPathReconstructionNode::GetCollectPointsNode()
 }
 
 //------------------------------------------------------------------------------
-void vtkMRMLPathReconstructionNode::SetCollectPointsNodeID( const char* nodeID )
+void vtkMRMLPathReconstructionNode::SetAndObserveCollectPointsNodeID( const char* nodeID )
 {
   const char* currentNodeID = this->GetNodeReferenceID( COLLECT_POINTS_ROLE );
   if ( nodeID != NULL && currentNodeID != NULL && strcmp( nodeID, currentNodeID ) == 0 )
@@ -251,6 +309,7 @@ void vtkMRMLPathReconstructionNode::SetCollectPointsNodeID( const char* nodeID )
     return; // not changed
   }
   this->SetAndObserveNodeReferenceID( COLLECT_POINTS_ROLE, nodeID );
+  this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
 }
 
 //------------------------------------------------------------------------------
@@ -260,7 +319,7 @@ void vtkMRMLPathReconstructionNode::CreateDefaultMarkupsToModelNode()
   markupsToModelNode->SetName( "MarkupsToModelNode_PathReconstruction" );
   this->ApplyDefaultSettingsToMarkupsToModelNode( markupsToModelNode );
   this->GetScene()->AddNode( markupsToModelNode );
-  this->SetMarkupsToModelNodeID( markupsToModelNode->GetID() );
+  this->SetAndObserveMarkupsToModelNodeID( markupsToModelNode->GetID() );
 }
 
 //------------------------------------------------------------------------------
@@ -285,7 +344,7 @@ vtkMRMLMarkupsToModelNode* vtkMRMLPathReconstructionNode::GetMarkupsToModelNode(
 }
 
 //------------------------------------------------------------------------------
-void vtkMRMLPathReconstructionNode::SetMarkupsToModelNodeID( const char* nodeID )
+void vtkMRMLPathReconstructionNode::SetAndObserveMarkupsToModelNodeID( const char* nodeID )
 {
   const char* currentNodeID = this->GetNodeReferenceID( MARKUPS_TO_MODEL_ROLE );
   if ( nodeID != NULL && currentNodeID != NULL && strcmp( nodeID, currentNodeID ) == 0 )
@@ -293,6 +352,7 @@ void vtkMRMLPathReconstructionNode::SetMarkupsToModelNodeID( const char* nodeID 
     return; // not changed
   }
   this->SetAndObserveNodeReferenceID( MARKUPS_TO_MODEL_ROLE, nodeID );
+  this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
 }
 
 //------------------------------------------------------------------------------
@@ -401,6 +461,8 @@ void vtkMRMLPathReconstructionNode::RemovePointsPathPairBySuffix( int suffix )
   this->RemoveNodeReferenceIDs( pathReferenceRole.c_str() );
   
   this->ReferenceRoleSuffixes.erase( suffix );
+
+  this->Modified();
 }
 
 //------------------------------------------------------------------------------

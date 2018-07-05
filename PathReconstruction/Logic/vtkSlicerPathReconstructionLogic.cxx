@@ -95,6 +95,7 @@ void vtkSlicerPathReconstructionLogic::OnMRMLSceneNodeAdded( vtkMRMLNode* node )
     vtkUnObserveMRMLNodeMacro( pathReconstructionNode ); // Remove previous observers.
     vtkNew<vtkIntArray> events;
     events->InsertNextValue( vtkCommand::ModifiedEvent );
+    events->InsertNextValue( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
     vtkObserveMRMLNodeEventsMacro( pathReconstructionNode, events.GetPointer() );
   }
 }

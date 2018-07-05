@@ -47,6 +47,8 @@ public:
   qSlicerPathReconstructionModuleWidgetPrivate( qSlicerPathReconstructionModuleWidget& object );
   vtkSlicerPathReconstructionLogic* logic() const;
 
+  vtkWeakPointer< vtkMRMLPathReconstructionNode > PathReconstructionNode;
+
   QMenu* DeleteMenu;
 };
 
@@ -207,6 +209,10 @@ void qSlicerPathReconstructionModuleWidget::onSceneImportedEvent()
 //-----------------------------------------------------------------------------
 void qSlicerPathReconstructionModuleWidget::onParameterNodeSelected()
 {
+  Q_D( qSlicerPathReconstructionModuleWidget );
+  vtkMRMLPathReconstructionNode* selectedPathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->ParameterNodeComboBox->currentNode() );
+  qvtkReconnect( d->PathReconstructionNode, selectedPathReconstructionNode, vtkCommand::ModifiedEvent, this, SLOT( updateGUIFromMRML() ) );
+  d->PathReconstructionNode = selectedPathReconstructionNode;
   this->updateGUIFromMRML();
 }
 
@@ -236,8 +242,6 @@ void qSlicerPathReconstructionModuleWidget::onSamplingTransformSelected()
     return;
   }
   collectPointsNode->SetAndObserveSamplingTransformNodeID( samplingTransformNodeID );
-
-  this->updateGUIFromMRML();
 }
 
 //-----------------------------------------------------------------------------
@@ -266,8 +270,6 @@ void qSlicerPathReconstructionModuleWidget::onAnchorTransformSelected()
     return;
   }
   collectPointsNode->SetAndObserveAnchorTransformNodeID( anchorTransformNodeID );
-
-  this->updateGUIFromMRML();
 }
 
 //-----------------------------------------------------------------------------
@@ -289,8 +291,6 @@ void qSlicerPathReconstructionModuleWidget::onCollectPointsAdded( vtkMRMLNode* n
     return;
   }
   pathReconstructionNode->ApplyDefaultSettingsToCollectPointsNode( collectPointsNode );
-
-  this->updateGUIFromMRML();
 }
 
 //-----------------------------------------------------------------------------
@@ -311,9 +311,7 @@ void qSlicerPathReconstructionModuleWidget::onCollectPointsSelected()
   {
     collectPointsNodeID = collectPointsNode->GetID();
   }
-  pathReconstructionNode->SetCollectPointsNodeID( collectPointsNodeID );
-
-  this->updateGUIFromMRML();
+  pathReconstructionNode->SetAndObserveCollectPointsNodeID( collectPointsNodeID );
 }
 
 //-----------------------------------------------------------------------------
@@ -332,8 +330,6 @@ void qSlicerPathReconstructionModuleWidget::onCollectPointsColorChanged( QColor 
   double green = (double)col.greenF();
   double blue = (double)col.blueF();
   pathReconstructionNode->SetPointsColor( red, green, blue );
-
-  this->updateGUIFromMRML();
 }
 
 //-----------------------------------------------------------------------------
@@ -355,8 +351,6 @@ void qSlicerPathReconstructionModuleWidget::onMarkupsToModelAdded( vtkMRMLNode* 
     return;
   }
   pathReconstructionNode->ApplyDefaultSettingsToMarkupsToModelNode( markupsToModelNode );
-
-  this->updateGUIFromMRML();
 }
 
 //-----------------------------------------------------------------------------
@@ -377,9 +371,7 @@ void qSlicerPathReconstructionModuleWidget::onMarkupsToModelSelected()
   {
     markupsToModelNodeID = markupsToModelNode->GetID();
   }
-  pathReconstructionNode->SetMarkupsToModelNodeID( markupsToModelNodeID );
-
-  this->updateGUIFromMRML();
+  pathReconstructionNode->SetAndObserveMarkupsToModelNodeID( markupsToModelNodeID );
 }
 
 //-----------------------------------------------------------------------------
@@ -398,8 +390,6 @@ void qSlicerPathReconstructionModuleWidget::onMarkupsToModelColorChanged( QColor
   double green = (double)col.greenF();
   double blue = (double)col.blueF();
   pathReconstructionNode->SetPathColor( red, green, blue );
-
-  this->updateGUIFromMRML();
 }
 
 //-----------------------------------------------------------------------------
@@ -416,8 +406,6 @@ void qSlicerPathReconstructionModuleWidget::onPointsBaseNameChanged()
 
   std::string newText = d->PointsBaseNameLineEdit->text().toStdString();
   pathReconstructionNode->SetPointsBaseName( newText );
-
-  this->updateGUIFromMRML();
 }
 
 //-----------------------------------------------------------------------------
@@ -434,8 +422,6 @@ void qSlicerPathReconstructionModuleWidget::onPathBaseNameChanged()
 
   std::string newText = d->PathBaseNameLineEdit->text().toStdString();
   pathReconstructionNode->SetPathBaseName( newText );
-
-  this->updateGUIFromMRML();
 }
 
 //-----------------------------------------------------------------------------
@@ -452,8 +438,6 @@ void qSlicerPathReconstructionModuleWidget::onNextCountChanged()
 
   int newNextValue = d->NextCountSpinBox->value();
   pathReconstructionNode->SetNextCount( newNextValue );
-
-  this->updateGUIFromMRML();
 }
 
 //-----------------------------------------------------------------------------
