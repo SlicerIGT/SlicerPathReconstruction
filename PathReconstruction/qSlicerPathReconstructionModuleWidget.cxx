@@ -535,19 +535,19 @@ void qSlicerPathReconstructionModuleWidget::updateGUIFromMRML()
   vtkMRMLCollectPointsNode* collectPointsNode = pathReconstructionNode->GetCollectPointsNode();
   d->CollectPointsComboBox->setCurrentNode( collectPointsNode );
 
-  if ( collectPointsNode )
-  {
-    vtkMRMLTransformNode* samplingTransformNode = pathReconstructionNode->GetSamplingTransformNode();
-    d->SamplingTransformComboBox->setCurrentNode( samplingTransformNode );
-    vtkMRMLTransformNode* anchorTransformNode = pathReconstructionNode->GetAnchorTransformNode();
-    d->AnchorTransformComboBox->setCurrentNode( anchorTransformNode );
-  }
-  else
+  if ( collectPointsNode == NULL )
   {
     d->SamplingTransformComboBox->setEnabled( false );
     d->SamplingTransformComboBox->setCurrentNode( NULL );
     d->AnchorTransformComboBox->setEnabled( false );
     d->AnchorTransformComboBox->setCurrentNode( NULL );
+  }
+  else
+  {
+    vtkMRMLTransformNode* samplingTransformNode = pathReconstructionNode->GetSamplingTransformNode();
+    d->SamplingTransformComboBox->setCurrentNode( samplingTransformNode );
+    vtkMRMLTransformNode* anchorTransformNode = pathReconstructionNode->GetAnchorTransformNode();
+    d->AnchorTransformComboBox->setCurrentNode( anchorTransformNode );
   }
 
   QColor pointsColor;
@@ -603,9 +603,9 @@ void qSlicerPathReconstructionModuleWidget::updateGUIFromMRML()
   }
 
   int numberOfPaths = pathReconstructionNode->GetNumberOfPathPointsPairs();
-  if ( numberOfPaths > 0 )
+  if ( numberOfPaths == 0 )
   {
-    d->RecordingButton->setEnabled( true );
+    d->DeleteButton->setEnabled( false );
   }
 
   this->blockAllSignals( false );
