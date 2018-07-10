@@ -43,8 +43,8 @@ public:
   enum Events
   {
     /// The node stores both inputs (e.g., tooltip position, model, colors, etc.) and computed parameters.
-    /// InputDataModifiedEvent is only invoked when input parameters are changed.
-    /// In contrast, ModifiedEvent event is called if either an input or output parameter is changed.
+    /// InputDataModifiedEvent is invoked when input parameters/nodes are changed (including the relevant data inside nodes).
+    /// In contrast, ModifiedEvent event is called if either an input or output node is set.
     // vtkCommand::UserEvent + 595 is just a random value that is very unlikely to be used for anything else in this class
     InputDataModifiedEvent = vtkCommand::UserEvent + 595
   };

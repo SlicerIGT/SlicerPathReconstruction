@@ -189,7 +189,6 @@ void vtkMRMLPathReconstructionNode::ProcessMRMLEvents( vtkObject* caller, unsign
   {
     if ( event == vtkMRMLCollectPointsNode::InputDataModifiedEvent )
     {
-      this->Modified(); // An input was modified, modified event signals either input or output changed
       this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
     }
   }
@@ -223,7 +222,6 @@ vtkMRMLTransformNode* vtkMRMLPathReconstructionNode::GetAnchorTransformNode()
 void vtkMRMLPathReconstructionNode::SetRecordingState( int newState )
 {
   this->RecordingState = newState;
-  this->Modified();
   this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
 }
 
@@ -231,7 +229,6 @@ void vtkMRMLPathReconstructionNode::SetRecordingState( int newState )
 void vtkMRMLPathReconstructionNode::SetNextCount( int newCount )
 {
   this->NextCount = newCount;
-  this->Modified();
   this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
 }
 
@@ -239,7 +236,6 @@ void vtkMRMLPathReconstructionNode::SetNextCount( int newCount )
 void vtkMRMLPathReconstructionNode::SetPointsBaseName( std::string newBaseName )
 {
   this->PointsBaseName = newBaseName;
-  this->Modified();
   this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
 }
 
@@ -247,7 +243,6 @@ void vtkMRMLPathReconstructionNode::SetPointsBaseName( std::string newBaseName )
 void vtkMRMLPathReconstructionNode::SetPathBaseName( std::string newBaseName )
 {
   this->PathBaseName = newBaseName;
-  this->Modified();
   this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
 }
 
@@ -257,7 +252,6 @@ void vtkMRMLPathReconstructionNode::SetPointsColor( double red, double green, do
   this->PointsColorRed = red;
   this->PointsColorGreen = green;
   this->PointsColorBlue = blue;
-  this->Modified();
   this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
 }
 
@@ -267,7 +261,6 @@ void vtkMRMLPathReconstructionNode::SetPathColor( double red, double green, doub
   this->PathColorRed = red;
   this->PathColorGreen = green;
   this->PathColorBlue = blue;
-  this->Modified();
   this->InvokeCustomModifiedEvent( vtkMRMLPathReconstructionNode::InputDataModifiedEvent );
 }
 

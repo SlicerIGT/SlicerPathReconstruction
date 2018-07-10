@@ -211,6 +211,7 @@ void qSlicerPathReconstructionModuleWidget::onParameterNodeSelected()
 {
   Q_D( qSlicerPathReconstructionModuleWidget );
   vtkMRMLPathReconstructionNode* selectedPathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->ParameterNodeComboBox->currentNode() );
+  qvtkReconnect( d->PathReconstructionNode, selectedPathReconstructionNode, vtkMRMLPathReconstructionNode::InputDataModifiedEvent, this, SLOT( updateGUIFromMRML() ) );
   qvtkReconnect( d->PathReconstructionNode, selectedPathReconstructionNode, vtkCommand::ModifiedEvent, this, SLOT( updateGUIFromMRML() ) );
   d->PathReconstructionNode = selectedPathReconstructionNode;
   this->updateGUIFromMRML();
