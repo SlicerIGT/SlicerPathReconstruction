@@ -103,6 +103,31 @@
     </layout>
    </item>
    <item>
+    <widget class="ctkCollapsibleGroupBox" name="PathsTableGroupBox">
+     <property name="title">
+      <string>Paths</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="qSlicerPathReconstructionTableWidget" name="PathsTableWidget">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>200</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>200</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="ctkCollapsibleGroupBox" name="AdvancedGroupBox">
      <property name="toolTip">
       <string extracomment="Show advanced model generation options">Show advanced model generation options</string>
@@ -325,6 +350,11 @@
    <extends>QWidget</extends>
    <header>qSlicerWidget.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>qSlicerPathReconstructionTableWidget</class>
+   <extends>qSlicerWidget</extends>
+   <header>qSlicerPathReconstructionTableWidget.h</header>
   </customwidget>
   <customwidget>
    <class>ctkCollapsibleGroupBox</class>

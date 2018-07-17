@@ -87,7 +87,10 @@ void qSlicerPathReconstructionModuleWidget::setup()
   d->setupUi( this );
   this->Superclass::setup();
 
-  this->setMRMLScene( d->logic()->GetMRMLScene() );
+  vtkMRMLScene* scene = d->logic()->GetMRMLScene();
+  this->setMRMLScene( scene );
+  d->PathsTableWidget->setMRMLScene( scene );
+  d->PathsTableWidget->setPathReconstructionNodeComboBoxVisible( false );
 
   connect( d->ParameterNodeComboBox, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onParameterNodeSelected() ) );
   connect( d->SamplingTransformComboBox, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onSamplingTransformSelected() ) );
@@ -122,7 +125,7 @@ void qSlicerPathReconstructionModuleWidget::enter()
 
   if ( this->mrmlScene() == NULL )
   {
-    qCritical() << "Invalid scene!";
+    qCritical() << "Invalid scene.";
     return;
   }
 
@@ -214,6 +217,7 @@ void qSlicerPathReconstructionModuleWidget::onParameterNodeSelected()
   qvtkReconnect( d->PathReconstructionNode, selectedPathReconstructionNode, vtkMRMLPathReconstructionNode::InputDataModifiedEvent, this, SLOT( updateGUIFromMRML() ) );
   qvtkReconnect( d->PathReconstructionNode, selectedPathReconstructionNode, vtkCommand::ModifiedEvent, this, SLOT( updateGUIFromMRML() ) );
   d->PathReconstructionNode = selectedPathReconstructionNode;
+  d->PathsTableWidget->setPathReconstructionNode( selectedPathReconstructionNode );
   this->updateGUIFromMRML();
 }
 

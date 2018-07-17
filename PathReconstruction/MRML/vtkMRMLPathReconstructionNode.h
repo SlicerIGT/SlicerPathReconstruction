@@ -32,7 +32,6 @@ class vtkMRMLTransformNode;
 class vtkMRMLMarkupsToModelNode;
 class vtkMRMLModelNode;
 
-// FiducialRegistrationWizard includes
 #include "vtkSlicerPathReconstructionModuleMRMLExport.h"
 
 class VTK_SLICER_PATHRECONSTRUCTION_MODULE_MRML_EXPORT vtkMRMLPathReconstructionNode
@@ -43,10 +42,11 @@ public:
   enum Events
   {
     /// The node stores both inputs (e.g., tooltip position, model, colors, etc.) and computed parameters.
+    /// ModifiedEvent event is called if either an input or output node is set.
     /// InputDataModifiedEvent is invoked when input parameters/nodes are changed (including the relevant data inside nodes).
-    /// In contrast, ModifiedEvent event is called if either an input or output node is set.
-    // vtkCommand::UserEvent + 595 is just a random value that is very unlikely to be used for anything else in this class
-    InputDataModifiedEvent = vtkCommand::UserEvent + 595
+    InputDataModifiedEvent = vtkCommand::UserEvent + 595,
+    // PathAddedEvent is invoked when a path is added to this node
+    PathAddedEvent = vtkCommand::UserEvent + 596
   };
 
   enum RecordingState
@@ -115,6 +115,8 @@ public:
 
   vtkGetMacro( PathBaseName, std::string );
   void SetPathBaseName( std::string );
+
+  void GetSuffixes( vtkIntArray* array );
   
   // outputs
   vtkMRMLModelNode* GetPointsModelNodeBySuffix( int suffix );
