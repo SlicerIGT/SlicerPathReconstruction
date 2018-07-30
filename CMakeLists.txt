@@ -23,6 +23,7 @@ find_package(MarkupsToModel REQUIRED)
 #-----------------------------------------------------------------------------
 # Extension modules
 add_subdirectory(PathReconstruction)
+add_subdirectory(PathVerification)
 
 #-----------------------------------------------------------------------------
 include(${Slicer_EXTENSION_GENERATE_CONFIG})
