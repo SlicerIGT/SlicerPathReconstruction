@@ -33,8 +33,40 @@
     <number>0</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="ControlLayout">
-     <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="1" column="3">
+      <widget class="QPushButton" name="RefitPathsButton">
+       <property name="toolTip">
+        <string>Re-apply the fitting as per the current MarkupsToModel node</string>
+       </property>
+       <property name="text">
+        <string>Refit</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="qMRMLNodeComboBox" name="FittingParametersComboBox">
+       <property name="nodeTypes">
+        <stringlist>
+         <string>vtkMRMLMarkupsToModelNode</string>
+        </stringlist>
+       </property>
+       <property name="noneEnabled">
+        <bool>true</bool>
+       </property>
+       <property name="renameEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="FittingParametersLabel">
+       <property name="text">
+        <string>Fitting parameters</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0" colspan="4">
       <widget class="qMRMLNodeComboBox" name="PathReconstructionNodeComboBox">
        <property name="enabled">
         <bool>true</bool>
@@ -70,6 +102,13 @@
        </property>
       </widget>
      </item>
+     <item row="1" column="2">
+      <widget class="ctkColorPickerButton" name="FittingColorPicker">
+       <property name="displayColorName">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -89,6 +128,11 @@
    <extends>QWidget</extends>
    <header>qSlicerWidget.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ctkColorPickerButton</class>
+   <extends>QPushButton</extends>
+   <header>ctkColorPickerButton.h</header>
   </customwidget>
  </customwidgets>
  <resources>
@@ -110,6 +154,22 @@
     <hint type="destinationlabel">
      <x>300</x>
      <y>149</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>qSlicerPathReconstructionTableWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>FittingParametersComboBox</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>365</x>
+     <y>97</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>381</x>
+     <y>41</y>
     </hint>
    </hints>
   </connection>

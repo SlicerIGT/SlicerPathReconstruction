@@ -17,10 +17,18 @@
 
 #include "qSlicerPathReconstructionTableWidget.h"
 
+#include "vtkSlicerPathReconstructionLogic.h"
+
+// QSlicer includes
+#include "qSlicerApplication.h"
+#include "qSlicerModuleManager.h"
+#include "qSlicerAbstractCoreModule.h"
+
 // MRML includes
 #include <vtkMRMLScene.h>
 #include <vtkMRMLModelNode.h>
 #include "vtkMRMLPathReconstructionNode.h"
+#include "vtkMRMLMarkupsToModelNode.h"
 
 // Qt includes
 #include <QDebug>
@@ -39,6 +47,7 @@ protected:
 public:
   qSlicerPathReconstructionTableWidgetPrivate( qSlicerPathReconstructionTableWidget& object);
   vtkWeakPointer< vtkMRMLPathReconstructionNode > PathReconstructionNode;
+  vtkWeakPointer< vtkSlicerPathReconstructionLogic > PathReconstructionLogic;
 };
 
 // --------------------------------------------------------------------------
@@ -63,7 +72,29 @@ void qSlicerPathReconstructionTableWidget::setup()
 {
   Q_D( qSlicerPathReconstructionTableWidget );
   d->setupUi( this );
+
+  // This cannot be called by the constructor, because Slicer may not exist when the constructor is called
+  d->PathReconstructionLogic = NULL;
+  if (qSlicerApplication::application() != NULL && qSlicerApplication::application()->moduleManager() != NULL)
+  {
+    qSlicerAbstractCoreModule* pathReconstructionModule = qSlicerApplication::application()->moduleManager()->module( "PathReconstruction" );
+    if ( pathReconstructionModule != NULL )
+    {
+      d->PathReconstructionLogic = vtkSlicerPathReconstructionLogic::SafeDownCast( pathReconstructionModule->logic() );
+      vtkMRMLScene* scene = d->PathReconstructionLogic->GetMRMLScene();
+      this->setMRMLScene( scene );
+    }
+  }
+  if (d->PathReconstructionLogic == NULL)
+  {
+    qCritical() << Q_FUNC_INFO << ": path reconstruction module logic not found. Some functionality will not work.";
+  }
+
   connect( d->PathReconstructionNodeComboBox, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( updateGUIFromMRML() ) );
+  connect( d->FittingParametersComboBox, SIGNAL( nodeAddedByUser( vtkMRMLNode* ) ), this, SLOT( onFittingParametersAdded( vtkMRMLNode* ) ) );
+  connect( d->FittingParametersComboBox, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onFittingParametersChanged() ) );
+  connect( d->FittingColorPicker, SIGNAL( colorChanged( QColor ) ), this, SLOT( onFittingColorChanged( QColor ) ) );
+  connect( d->RefitPathsButton, SIGNAL( clicked() ), this, SLOT( onRefitPathsButtonClicked() ) );
 }
 
 //-----------------------------------------------------------------------------
@@ -105,8 +136,8 @@ void qSlicerPathReconstructionTableWidget::setPathReconstructionNode( vtkMRMLNod
     return;
   }
 
-  // This widget only needs to update if the nodes are changed, so we only check for Modified event
   this->qvtkReconnect( d->PathReconstructionNode, pathReconstructionNode, vtkCommand::ModifiedEvent, this, SLOT( updateGUIFromMRML() ) );
+  this->qvtkReconnect( d->PathReconstructionNode, pathReconstructionNode, vtkMRMLPathReconstructionNode::InputDataModifiedEvent, this, SLOT( updateGUIFromMRML() ) );
 
   // The table should scroll to the bottom when new paths are added
   this->qvtkReconnect( d->PathReconstructionNode, pathReconstructionNode, vtkMRMLPathReconstructionNode::PathAddedEvent, d->PathsTable, SLOT( scrollToBottom() ) );
@@ -120,7 +151,97 @@ void qSlicerPathReconstructionTableWidget::setPathReconstructionNode( vtkMRMLNod
 void qSlicerPathReconstructionTableWidget::setPathReconstructionNodeComboBoxVisible( bool visible )
 {
   Q_D( qSlicerPathReconstructionTableWidget );
-  d->PathReconstructionNodeComboBox->setVisible(visible);
+  d->PathReconstructionNodeComboBox->setVisible( visible );
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerPathReconstructionTableWidget::setFittingParametersVisible( bool visible )
+{
+  Q_D( qSlicerPathReconstructionTableWidget );
+  d->FittingParametersLabel->setVisible( visible );
+  d->FittingParametersComboBox->setVisible( visible );
+  d->RefitPathsButton->setVisible( visible );
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerPathReconstructionTableWidget::onFittingParametersAdded( vtkMRMLNode* newNode )
+{
+  Q_D( qSlicerPathReconstructionTableWidget );
+
+  vtkMRMLPathReconstructionNode* pathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->PathReconstructionNode );
+  if ( pathReconstructionNode == NULL )
+  {
+    qCritical() << Q_FUNC_INFO << ": invalid parameter node";
+    return;
+  }
+
+  vtkMRMLMarkupsToModelNode* markupsToModelNode = vtkMRMLMarkupsToModelNode::SafeDownCast( newNode );
+  if ( markupsToModelNode == NULL )
+  {
+    qCritical() << Q_FUNC_INFO << ": invalid MarkupsToModel node";
+    return;
+  }
+  pathReconstructionNode->ApplyDefaultSettingsToMarkupsToModelNode( markupsToModelNode );
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerPathReconstructionTableWidget::onFittingParametersChanged()
+{
+  Q_D( qSlicerPathReconstructionTableWidget );
+
+  vtkMRMLPathReconstructionNode* pathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->PathReconstructionNode );
+  if ( pathReconstructionNode == NULL )
+  {
+    qCritical() << Q_FUNC_INFO << ": invalid parameter node";
+    return;
+  }
+  
+  const char* markupsToModelNodeID = NULL;
+  vtkMRMLMarkupsToModelNode* markupsToModelNode = vtkMRMLMarkupsToModelNode::SafeDownCast( d->FittingParametersComboBox->currentNode() );
+  if( markupsToModelNode != NULL )
+  {
+    markupsToModelNodeID = markupsToModelNode->GetID();
+  }
+  pathReconstructionNode->SetAndObserveMarkupsToModelNodeID( markupsToModelNodeID );
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerPathReconstructionTableWidget::onFittingColorChanged( QColor col )
+{
+  Q_D( qSlicerPathReconstructionTableWidget );
+
+  vtkMRMLPathReconstructionNode* pathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->PathReconstructionNode );
+  if ( pathReconstructionNode == NULL )
+  {
+    qCritical() << Q_FUNC_INFO << ": invalid parameter node";
+    return;
+  }
+
+  double red = (double)col.redF();
+  double green = (double)col.greenF();
+  double blue = (double)col.blueF();
+  pathReconstructionNode->SetPathColor( red, green, blue );
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerPathReconstructionTableWidget::onRefitPathsButtonClicked()
+{
+  Q_D( qSlicerPathReconstructionTableWidget );
+
+  vtkMRMLPathReconstructionNode* pathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->PathReconstructionNode );
+  if ( pathReconstructionNode == NULL )
+  {
+    qCritical() << Q_FUNC_INFO << ": invalid parameter node";
+    return;
+  }
+
+  if ( d->PathReconstructionLogic == NULL )
+  {
+    qWarning() << Q_FUNC_INFO << ": invalid module logic";
+    return;
+  }
+
+  d->PathReconstructionLogic->RefitAllPaths( pathReconstructionNode );
 }
 
 //-----------------------------------------------------------------------------
@@ -130,8 +251,48 @@ void qSlicerPathReconstructionTableWidget::updateGUIFromMRML()
 
   if ( this->mrmlScene() == NULL )
   {
-    qCritical("Scene is invalid");
+    qCritical() << Q_FUNC_INFO << ": Scene is invalid";
+    return;
   }
+
+  vtkMRMLPathReconstructionNode* currentPathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->PathReconstructionNode );
+  if ( currentPathReconstructionNode == NULL )
+  {
+    d->FittingParametersComboBox->setEnabled( false );
+    d->FittingColorPicker->setEnabled( false );
+    d->RefitPathsButton->setEnabled( false );
+    d->PathsTable->setRowCount( 0 );
+    return;
+  }
+
+  // Update the fitting parameters
+  bool wasBlockedFittingParameters = d->FittingParametersComboBox->blockSignals( true );
+  bool wasBlockedFittingColor = d->FittingColorPicker->blockSignals( true );
+
+  vtkMRMLMarkupsToModelNode* fittingParametersNode = currentPathReconstructionNode->GetMarkupsToModelNode();
+  if ( fittingParametersNode != NULL )
+  {
+    d->FittingParametersComboBox->setCurrentNode( fittingParametersNode );
+    d->FittingParametersComboBox->setEnabled( true );
+    d->FittingColorPicker->setEnabled( true );
+    d->RefitPathsButton->setEnabled( true );
+  }
+  else
+  {
+    d->FittingParametersComboBox->setEnabled( false );
+    d->FittingColorPicker->setEnabled( false );
+    d->RefitPathsButton->setEnabled( false );
+  }
+
+  QColor pathColor;
+  double pathRed = currentPathReconstructionNode->GetPathColorRed();
+  double pathGreen = currentPathReconstructionNode->GetPathColorGreen();
+  double pathBlue = currentPathReconstructionNode->GetPathColorBlue();
+  pathColor.setRgbF( pathRed, pathGreen, pathBlue );
+  d->FittingColorPicker->setColor( pathColor );
+
+  d->FittingParametersComboBox->blockSignals( wasBlockedFittingParameters );
+  d->FittingColorPicker->blockSignals( wasBlockedFittingColor );
 
   // Update the fiducials table
   bool wasBlockedTableWidget = d->PathsTable->blockSignals( true );
@@ -151,13 +312,6 @@ void qSlicerPathReconstructionTableWidget::updateGUIFromMRML()
 #endif
   d->PathsTable->setContextMenuPolicy( Qt::CustomContextMenu );
   d->PathsTable->setSelectionBehavior( QAbstractItemView::SelectRows ); // only select rows rather than cells
-
-  vtkMRMLPathReconstructionNode* currentPathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->PathReconstructionNode );
-  if ( currentPathReconstructionNode == NULL )
-  {
-    d->PathsTable->setRowCount( 0 );
-    return;
-  }
 
   vtkSmartPointer< vtkIntArray > suffixes = vtkSmartPointer< vtkIntArray >::New();
   currentPathReconstructionNode->GetSuffixes( suffixes );

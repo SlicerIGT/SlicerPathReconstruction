@@ -22,7 +22,6 @@ set(MODULE_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/Widgets
   ${CMAKE_CURRENT_BINARY_DIR}/Widgets
   ${vtkSlicerCollectPointsModuleMRML_INCLUDE_DIRS}
-  ${vtkSlicerMarkupsToModelModuleMRML_INCLUDE_DIRS}
   )
 
 set(MODULE_SRCS

@@ -31,7 +31,6 @@
 // slicer includes
 #include "vtkMRMLCollectPointsNode.h"
 #include "vtkMRMLLinearTransformNode.h"
-#include "vtkMRMLMarkupsToModelNode.h"
 #include "vtkMRMLMarkupsFiducialNode.h"
 #include "vtkMRMLModelDisplayNode.h"
 
@@ -89,8 +88,9 @@ void qSlicerPathReconstructionModuleWidget::setup()
 
   vtkMRMLScene* scene = d->logic()->GetMRMLScene();
   this->setMRMLScene( scene );
-  d->PathsTableWidget->setMRMLScene( scene );
+  d->PathsTableWidget->setMRMLScene( scene ); // This may no longer be necessary
   d->PathsTableWidget->setPathReconstructionNodeComboBoxVisible( false );
+  d->PathsTableWidget->setFittingParametersVisible( true );
 
   connect( d->ParameterNodeComboBox, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onParameterNodeSelected() ) );
   connect( d->SamplingTransformComboBox, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onSamplingTransformSelected() ) );
@@ -103,9 +103,6 @@ void qSlicerPathReconstructionModuleWidget::setup()
   connect( d->CollectPointsComboBox, SIGNAL( nodeAddedByUser( vtkMRMLNode* ) ), this, SLOT( onCollectPointsAdded( vtkMRMLNode* ) ) );
   connect( d->CollectPointsColorPicker, SIGNAL( colorChanged( QColor ) ), this, SLOT( onCollectPointsColorChanged( QColor ) ) );
   connect( d->PathBaseNameLineEdit, SIGNAL( editingFinished() ), this, SLOT( onPathBaseNameChanged() ) );
-  connect( d->MarkupsToModelComboBox, SIGNAL( currentNodeChanged( vtkMRMLNode* ) ), this, SLOT( onMarkupsToModelSelected() ) );
-  connect( d->MarkupsToModelComboBox, SIGNAL( nodeAddedByUser( vtkMRMLNode* ) ), this, SLOT( onMarkupsToModelAdded( vtkMRMLNode* ) ) );
-  connect( d->MarkupsToModelColorPicker, SIGNAL( colorChanged( QColor ) ), this, SLOT( onMarkupsToModelColorChanged( QColor ) ) );
 
   connect( d->RecordingButton, SIGNAL( clicked() ), this, SLOT( onRecordingButtonClicked() ) );
 
@@ -171,8 +168,6 @@ void qSlicerPathReconstructionModuleWidget::blockAllSignals( bool block )
   d->CollectPointsComboBox->blockSignals( block );
   d->CollectPointsColorPicker->blockSignals( block );
   d->PathBaseNameLineEdit->blockSignals( block );
-  d->MarkupsToModelComboBox->blockSignals( block );
-  d->MarkupsToModelColorPicker->blockSignals( block );
   d->RecordingButton->blockSignals( block );
   d->DeleteButton->blockSignals( block );
 }
@@ -189,8 +184,6 @@ void qSlicerPathReconstructionModuleWidget::enableAllWidgets( bool enable )
   d->CollectPointsComboBox->setEnabled( enable );
   d->CollectPointsColorPicker->setEnabled( enable );
   d->PathBaseNameLineEdit->setEnabled( enable );
-  d->MarkupsToModelComboBox->setEnabled( enable );
-  d->MarkupsToModelColorPicker->setEnabled( enable );
   d->RecordingButton->setEnabled( enable );
   d->DeleteButton->setEnabled( enable );
 }
@@ -335,66 +328,6 @@ void qSlicerPathReconstructionModuleWidget::onCollectPointsColorChanged( QColor 
   double green = (double)col.greenF();
   double blue = (double)col.blueF();
   pathReconstructionNode->SetPointsColor( red, green, blue );
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerPathReconstructionModuleWidget::onMarkupsToModelAdded( vtkMRMLNode* newNode )
-{
-  Q_D( qSlicerPathReconstructionModuleWidget );
-
-  vtkMRMLPathReconstructionNode* pathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->ParameterNodeComboBox->currentNode() );
-  if ( pathReconstructionNode == NULL )
-  {
-    qCritical() << Q_FUNC_INFO << ": invalid parameter node";
-    return;
-  }
-
-  vtkMRMLMarkupsToModelNode* markupsToModelNode = vtkMRMLMarkupsToModelNode::SafeDownCast( newNode );
-  if ( markupsToModelNode == NULL )
-  {
-    qCritical() << Q_FUNC_INFO << ": invalid MarkupsToModel node";
-    return;
-  }
-  pathReconstructionNode->ApplyDefaultSettingsToMarkupsToModelNode( markupsToModelNode );
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerPathReconstructionModuleWidget::onMarkupsToModelSelected()
-{
-  Q_D( qSlicerPathReconstructionModuleWidget );
-
-  vtkMRMLPathReconstructionNode* pathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->ParameterNodeComboBox->currentNode() );
-  if ( pathReconstructionNode == NULL )
-  {
-    qCritical() << Q_FUNC_INFO << ": invalid parameter node";
-    return;
-  }
-  
-  const char* markupsToModelNodeID = NULL;
-  vtkMRMLMarkupsToModelNode* markupsToModelNode = vtkMRMLMarkupsToModelNode::SafeDownCast( d->MarkupsToModelComboBox->currentNode() );
-  if( markupsToModelNode != NULL )
-  {
-    markupsToModelNodeID = markupsToModelNode->GetID();
-  }
-  pathReconstructionNode->SetAndObserveMarkupsToModelNodeID( markupsToModelNodeID );
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerPathReconstructionModuleWidget::onMarkupsToModelColorChanged( QColor col )
-{
-  Q_D( qSlicerPathReconstructionModuleWidget );
-
-  vtkMRMLPathReconstructionNode* pathReconstructionNode = vtkMRMLPathReconstructionNode::SafeDownCast( d->ParameterNodeComboBox->currentNode() );
-  if ( pathReconstructionNode == NULL )
-  {
-    qCritical() << Q_FUNC_INFO << ": invalid parameter node";
-    return;
-  }
-
-  double red = (double)col.redF();
-  double green = (double)col.greenF();
-  double blue = (double)col.blueF();
-  pathReconstructionNode->SetPathColor( red, green, blue );
 }
 
 //-----------------------------------------------------------------------------
@@ -561,16 +494,6 @@ void qSlicerPathReconstructionModuleWidget::updateGUIFromMRML()
   pointsColor.setRgbF( pointsRed, pointsGreen, pointsBlue );
   d->CollectPointsColorPicker->setColor( pointsColor );
 
-  vtkMRMLMarkupsToModelNode* markupsToModelNode = pathReconstructionNode->GetMarkupsToModelNode();
-  d->MarkupsToModelComboBox->setCurrentNode( markupsToModelNode );
-
-  QColor pathColor;
-  double pathRed = pathReconstructionNode->GetPathColorRed();
-  double pathGreen = pathReconstructionNode->GetPathColorGreen();
-  double pathBlue = pathReconstructionNode->GetPathColorBlue();
-  pathColor.setRgbF( pathRed, pathGreen, pathBlue );
-  d->MarkupsToModelColorPicker->setColor( pathColor );
-
   QString pointsBaseLabel = QString( pathReconstructionNode->GetPointsBaseName().c_str() );
   d->PointsBaseNameLineEdit->setText( pointsBaseLabel );
 
@@ -599,8 +522,6 @@ void qSlicerPathReconstructionModuleWidget::updateGUIFromMRML()
     d->AnchorTransformComboBox->setEnabled( false );
     d->CollectPointsComboBox->setEnabled( false );
     d->CollectPointsColorPicker->setEnabled( false );
-    d->MarkupsToModelComboBox->setEnabled( false );
-    d->MarkupsToModelColorPicker->setEnabled( false );
     d->NextCountSpinBox->setEnabled( false );
     d->PointsBaseNameLineEdit->setEnabled( false );
     d->PathBaseNameLineEdit->setEnabled( false );

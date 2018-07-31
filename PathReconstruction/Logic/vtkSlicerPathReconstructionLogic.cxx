@@ -270,3 +270,71 @@ void vtkSlicerPathReconstructionLogic::StopRecording( vtkMRMLPathReconstructionN
 
   pathReconstructionNode->SetRecordingStateToStopped();
 }
+
+//------------------------------------------------------------------------------
+void vtkSlicerPathReconstructionLogic::RefitAllPaths( vtkMRMLPathReconstructionNode* pathReconstructionNode )
+{
+  if ( pathReconstructionNode == NULL )
+  {
+    vtkErrorMacro( "Parameter node is null. Cannot update paths." );
+    return;
+  }
+
+  vtkMRMLMarkupsToModelNode* markupsToModelNode = pathReconstructionNode->GetMarkupsToModelNode();
+  if ( markupsToModelNode == NULL )
+  {
+    vtkErrorMacro( "Markups to model node is null. Cannot update paths." );
+    return;
+  }
+
+  bool wasAutoUpdate = markupsToModelNode->GetAutoUpdateOutput();
+  markupsToModelNode->SetAutoUpdateOutput( false );
+
+  vtkSmartPointer< vtkIntArray > suffixArray = vtkSmartPointer< vtkIntArray >::New();
+  pathReconstructionNode->GetSuffixes( suffixArray );
+  int numberOfSuffixes = suffixArray->GetNumberOfTuples();
+  for ( int suffixIndex = 0; suffixIndex < numberOfSuffixes; suffixIndex++ )
+  {
+    int suffix = suffixArray->GetComponent( suffixIndex, 0 );
+
+    vtkMRMLModelNode* pointsNode = pathReconstructionNode->GetPointsModelNodeBySuffix( suffix );
+    if ( pointsNode == NULL )
+    {
+      continue;
+    }
+
+    vtkMRMLModelNode* pathNode = pathReconstructionNode->GetPathModelNodeBySuffix( suffix );
+    if ( pathNode == NULL )
+    {
+      // If we wanted to we could create a new model node here.
+      // But until there is a need for such functionality,
+      // we'll just leave things as we found them.
+      continue;
+    }
+
+    vtkMRMLModelDisplayNode* pathDisplayNode = pathNode->GetModelDisplayNode();
+    if ( pathDisplayNode == NULL )
+    {
+      pathNode->CreateDefaultDisplayNodes();
+      pathDisplayNode = pathNode->GetModelDisplayNode();
+    }
+    if ( pathDisplayNode != NULL )
+    {
+      double pathColorRed = pathReconstructionNode->GetPathColorRed();
+      double pathColorGreen = pathReconstructionNode->GetPathColorGreen();
+      double pathColorBlue = pathReconstructionNode->GetPathColorBlue();
+      pathDisplayNode->SetColor( pathColorRed, pathColorGreen, pathColorBlue );
+    }
+    else
+    {
+      vtkWarningMacro( "Unable to find or create display node for path node." );
+    }
+
+    markupsToModelNode->SetAndObserveInputNodeID( pointsNode->GetID() );
+    markupsToModelNode->SetAndObserveOutputModelNodeID( pathNode->GetID() );
+    markupsToModelNode->SetAutoUpdateOutput( true ); // TODO: This is a bit ugly, find another way to do this
+    markupsToModelNode->SetAutoUpdateOutput( false );
+  }
+
+  markupsToModelNode->SetAutoUpdateOutput( wasAutoUpdate );
+}

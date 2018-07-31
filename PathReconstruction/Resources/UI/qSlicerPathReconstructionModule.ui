@@ -138,6 +138,9 @@
      <property name="flat">
       <bool>false</bool>
      </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
      <property name="checked">
       <bool>false</bool>
      </property>
@@ -145,34 +148,37 @@
       <bool>true</bool>
      </property>
      <layout class="QGridLayout" name="AdvancedLayout">
-      <item row="6" column="1">
-       <widget class="QLineEdit" name="PathBaseNameLineEdit">
-        <property name="toolTip">
-         <string>Base name for path nodes that are created</string>
-        </property>
-        <property name="text">
-         <string>Path</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QLabel" name="MarkupsToModelLabel">
-        <property name="text">
-         <string>Markups to model node:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="0">
-       <widget class="QLabel" name="PathBaseNameLabel">
-        <property name="text">
-         <string>Path base name</string>
-        </property>
-       </widget>
-      </item>
       <item row="2" column="0">
        <widget class="QLabel" name="CollectPointsLabel">
         <property name="text">
          <string>Collect points node:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QSpinBox" name="NextCountSpinBox">
+        <property name="toolTip">
+         <string>The next points and path pair of models will have this number in their name</string>
+        </property>
+        <property name="maximum">
+         <number>1000000</number>
+        </property>
+        <property name="value">
+         <number>1</number>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="AnchorTransformLabel">
+        <property name="text">
+         <string>Anchor transform:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="PathBaseNameLabel">
+        <property name="text">
+         <string>Path base name</string>
         </property>
        </widget>
       </item>
@@ -186,37 +192,53 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="1">
+       <widget class="qMRMLNodeComboBox" name="AnchorTransformComboBox">
+        <property name="toolTip">
+         <string>Points will be collected in this node's coordinate system.</string>
+        </property>
+        <property name="nodeTypes">
+         <stringlist>
+          <string>vtkMRMLLinearTransformNode</string>
+         </stringlist>
+        </property>
+        <property name="baseName">
+         <string/>
+        </property>
+        <property name="noneEnabled">
+         <bool>true</bool>
+        </property>
+        <property name="removeEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="renameEnabled">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="NextCountLabel">
+        <property name="text">
+         <string>Next count:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="PointsBaseNameLabel">
+        <property name="text">
+         <string>Points base name:</string>
+        </property>
+       </widget>
+      </item>
       <item row="5" column="1">
-       <layout class="QGridLayout" name="MarkupsToModelInputLayout">
-        <item row="0" column="0">
-         <widget class="qMRMLNodeComboBox" name="MarkupsToModelComboBox">
-          <property name="toolTip">
-           <string>This node contains the parameters for generating a model from the collected points</string>
-          </property>
-          <property name="nodeTypes">
-           <stringlist>
-            <string>vtkMRMLMarkupsToModelNode</string>
-           </stringlist>
-          </property>
-          <property name="noneEnabled">
-           <bool>true</bool>
-          </property>
-          <property name="renameEnabled">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="ctkColorPickerButton" name="MarkupsToModelColorPicker">
-          <property name="toolTip">
-           <string>Change the color of generated models</string>
-          </property>
-          <property name="displayColorName">
-           <bool>false</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
+       <widget class="QLineEdit" name="PathBaseNameLineEdit">
+        <property name="toolTip">
+         <string>Base name for path nodes that are created</string>
+        </property>
+        <property name="text">
+         <string>Path</string>
+        </property>
+       </widget>
       </item>
       <item row="2" column="1">
        <layout class="QGridLayout" name="CollectPointsInputLayout">
@@ -249,64 +271,6 @@
          </widget>
         </item>
        </layout>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="PointsBaseNameLabel">
-        <property name="text">
-         <string>Points base name:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="NextCountLabel">
-        <property name="text">
-         <string>Next count:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="AnchorTransformLabel">
-        <property name="text">
-         <string>Anchor transform:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="qMRMLNodeComboBox" name="AnchorTransformComboBox">
-        <property name="toolTip">
-         <string>Points will be collected in this node's coordinate system.</string>
-        </property>
-        <property name="nodeTypes">
-         <stringlist>
-          <string>vtkMRMLLinearTransformNode</string>
-         </stringlist>
-        </property>
-        <property name="baseName">
-         <string/>
-        </property>
-        <property name="noneEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="renameEnabled">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QSpinBox" name="NextCountSpinBox">
-        <property name="toolTip">
-         <string>The next points and path pair of models will have this number in their name</string>
-        </property>
-        <property name="maximum">
-         <number>1000000</number>
-        </property>
-        <property name="value">
-         <number>1</number>
-        </property>
-       </widget>
       </item>
      </layout>
     </widget>
@@ -390,22 +354,6 @@
     <hint type="destinationlabel">
      <x>412</x>
      <y>21</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>qSlicerPathReconstructionModuleWidget</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>MarkupsToModelComboBox</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>406</x>
-     <y>409</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>430</x>
-     <y>314</y>
     </hint>
    </hints>
   </connection>

@@ -50,9 +50,6 @@ protected slots:
   void onCollectPointsAdded( vtkMRMLNode* );
   void onCollectPointsSelected();
   void onCollectPointsColorChanged( QColor );
-  void onMarkupsToModelAdded( vtkMRMLNode* );
-  void onMarkupsToModelSelected();
-  void onMarkupsToModelColorChanged( QColor );
   void onPointsBaseNameChanged();
   void onPathBaseNameChanged();
   void onNextCountChanged();

@@ -57,11 +57,16 @@ public slots:
   /// Set the currently selected node.
   void setPathReconstructionNode( vtkMRMLNode* currentNode );
 
-  /// Make the combo box node selector visible or not
+  /// Make individual features visible or not
   void setPathReconstructionNodeComboBoxVisible( bool visible );
+  void setFittingParametersVisible( bool visible );
+
+  void onFittingParametersAdded( vtkMRMLNode* );
+  void onFittingParametersChanged();
+  void onFittingColorChanged( QColor );
+  void onRefitPathsButtonClicked();
 
 protected slots:
-
   /// Update the GUI to reflect the currently selected node.
   void updateGUIFromMRML();
 

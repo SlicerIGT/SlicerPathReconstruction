@@ -4,7 +4,9 @@ set(KIT ${PROJECT_NAME})
 
 set(${KIT}_EXPORT_DIRECTIVE "Q_SLICER_QTMODULES_${MODULE_NAME_UPPER}_WIDGETS_EXPORT")
 
-set(${KIT}_INCLUDE_DIRECTORIES)
+set(${KIT}_INCLUDE_DIRECTORIES
+  ${vtkSlicerMarkupsToModelModuleMRML_INCLUDE_DIRS}
+  )
 
 set(${KIT}_SRCS
   qSlicerPathReconstructionTableWidget.h
@@ -23,6 +25,7 @@ set(${KIT}_RESOURCES)
 
 set(${KIT}_TARGET_LIBRARIES
   vtkSlicer${MODULE_NAME}ModuleMRML
+  vtkSlicer${MODULE_NAME}ModuleLogic
   )
 
 #-----------------------------------------------------------------------------
