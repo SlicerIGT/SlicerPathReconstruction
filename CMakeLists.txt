@@ -18,6 +18,7 @@ find_package(Slicer REQUIRED)
 include(${Slicer_USE_FILE})
 
 find_package(SlicerIGT REQUIRED)
+find_package(SlicerRT REQUIRED)
 find_package(MarkupsToModel REQUIRED)
 
 #-----------------------------------------------------------------------------
