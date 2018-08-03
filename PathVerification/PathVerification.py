@@ -42,15 +42,30 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.layout.addWidget(preprocessingCollapsibleButton)
     preprocessingFormLayout = qt.QFormLayout(preprocessingCollapsibleButton)
 
-    self.trimPathsComboBox = slicer.qMRMLNodeComboBox()
-    self.trimPathsComboBox.nodeTypes = ["vtkMRMLPathReconstructionNode"]
-    self.trimPathsComboBox.addEnabled = False
-    self.trimPathsComboBox.removeEnabled = False
-    self.trimPathsComboBox.noneEnabled = True
-    self.trimPathsComboBox.showHidden = False
-    self.trimPathsComboBox.showChildNodeTypes = False
-    self.trimPathsComboBox.setMRMLScene( slicer.mrmlScene )
-    preprocessingFormLayout.addRow("Trim Paths: ", self.trimPathsComboBox)
+    self.preprocessPathsComboBox = slicer.qMRMLNodeComboBox()
+    self.preprocessPathsComboBox.nodeTypes = ["vtkMRMLPathReconstructionNode"]
+    self.preprocessPathsComboBox.addEnabled = True
+    self.preprocessPathsComboBox.renameEnabled = True
+    self.preprocessPathsComboBox.removeEnabled = False
+    self.preprocessPathsComboBox.noneEnabled = True
+    self.preprocessPathsComboBox.showHidden = False
+    self.preprocessPathsComboBox.showChildNodeTypes = False
+    self.preprocessPathsComboBox.setMRMLScene( slicer.mrmlScene )
+    preprocessingFormLayout.addRow("Paths to preprocess: ", self.preprocessPathsComboBox)
+
+    self.segmentationComboBox = slicer.qMRMLNodeComboBox()
+    self.segmentationComboBox.nodeTypes = ["vtkMRMLSegmentationNode"]
+    self.segmentationComboBox.addEnabled = False
+    self.segmentationComboBox.removeEnabled = False
+    self.segmentationComboBox.noneEnabled = True
+    self.segmentationComboBox.showHidden = False
+    self.segmentationComboBox.showChildNodeTypes = False
+    self.segmentationComboBox.setMRMLScene( slicer.mrmlScene )
+    preprocessingFormLayout.addRow("Segmented Paths: ", self.segmentationComboBox)
+
+    self.segmentExportButton = qt.QPushButton("Export Segments to Path")
+    self.segmentExportButton.enabled = False
+    preprocessingFormLayout.addRow(self.segmentExportButton)
 
     self.trimAmountSpinBox = ctk.ctkDoubleSpinBox()
     self.trimAmountSpinBox.setDecimals(1)
@@ -76,6 +91,7 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.referencePathsComboBox = slicer.qMRMLNodeComboBox()
     self.referencePathsComboBox.nodeTypes = ["vtkMRMLPathReconstructionNode"]
     self.referencePathsComboBox.addEnabled = False
+    self.referencePathsComboBox.renameEnabled = True
     self.referencePathsComboBox.removeEnabled = False
     self.referencePathsComboBox.noneEnabled = True
     self.referencePathsComboBox.showHidden = False
@@ -86,6 +102,7 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.comparePathsComboBox = slicer.qMRMLNodeComboBox()
     self.comparePathsComboBox.nodeTypes = ["vtkMRMLPathReconstructionNode"]
     self.comparePathsComboBox.addEnabled = False
+    self.comparePathsComboBox.renameEnabled = True
     self.comparePathsComboBox.removeEnabled = False
     self.comparePathsComboBox.noneEnabled = True
     self.comparePathsComboBox.showHidden = False
@@ -168,7 +185,9 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     verificationFormLayout.addRow(self.computeButton)
 
     # connections
-    self.trimPathsComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
+    self.preprocessPathsComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
+    self.segmentationComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
+    self.segmentExportButton.connect("clicked(bool)", self.onSegmentExportButton)
     self.trimButton.connect('clicked(bool)', self.onTrimButton)
     self.refitButton.connect('clicked(bool)', self.onRefitButton)
     self.referencePathsComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
@@ -192,8 +211,9 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     pass
 
   def onNodeChanged(self):
-    self.trimButton.enabled = self.trimPathsComboBox.currentNode()
-    self.refitButton.enabled = self.trimPathsComboBox.currentNode()
+    self.segmentExportButton.enabled = self.segmentationComboBox.currentNode()
+    self.trimButton.enabled = self.preprocessPathsComboBox.currentNode()
+    self.refitButton.enabled = self.preprocessPathsComboBox.currentNode()
     self.registerButton.enabled = self.referencePathsComboBox.currentNode() and \
                                   self.comparePathsComboBox.currentNode()
     self.computeButton.enabled = self.referencePathsComboBox.currentNode() and \
@@ -253,15 +273,26 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
                             compareToReferenceTransformNode, \
                             outputDistancesTableNode, outputSummaryTableNode)
 
+  def onSegmentExportButton(self):
+    segmentationNode = self.segmentationComboBox.currentNode()
+    segmentationPaths = self.preprocessPathsComboBox.currentNode()
+    if not segmentationPaths:
+      segmentationPaths = slicer.vtkMRMLPathReconstructionNode()
+      segmentationPaths.SetName("CTPaths")
+      slicer.mrmlScene.AddNode(segmentationPaths)
+      self.preprocessPathsComboBox.setCurrentNode(segmentationPaths)
+    logic = PathVerificationLogic()
+    logic.exportSegmentsToPath(segmentationNode, segmentationPaths)
+
   def onTrimButton(self):
-    trimPathsNode = self.trimPathsComboBox.currentNode()
+    trimPathsNode = self.preprocessPathsComboBox.currentNode()
     trimDistance = self.trimAmountSpinBox.value
     logic = PathVerificationLogic()
     logic.trimPoints( trimPathsNode, trimDistance )
     self.trimAmountSpinBox.setValue( 0 ) # avoid trimming twice by accident (e.g. double click)
 
   def onRefitButton(self):
-    trimPathsNode = self.trimPathsComboBox.currentNode()
+    trimPathsNode = self.preprocessPathsComboBox.currentNode()
     logic = PathVerificationLogic()
     logic.refitPath( trimPathsNode )
 
@@ -274,6 +305,29 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
   Uses ScriptedLoadableModuleLogic base class, available at:
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
+
+  def exportSegmentsToPath( self, segmentationNode, pathsNode ):
+    segmentationsLogic = slicer.modules.segmentations.logic()
+    modelHierarchyNode = slicer.vtkMRMLModelHierarchyNode()
+    slicer.mrmlScene.AddNode( modelHierarchyNode )
+    modelHierarchyName = pathsNode.GetName() + "_Models"
+    modelHierarchyNode.SetName( modelHierarchyName )
+    segmentationsLogic.ExportVisibleSegmentsToModelHierarchy( segmentationNode, modelHierarchyNode )
+
+    if not pathsNode.GetMarkupsToModelNode():
+      markupsToModelNode = slicer.vtkMRMLMarkupsToModelNode()
+      slicer.mrmlScene.AddNode( markupsToModelNode )
+      pathsNode.SetAndObserveMarkupsToModelNodeID( markupsToModelNode.GetID() )
+
+    numberOfCatheters = modelHierarchyNode.GetNumberOfChildrenNodes()
+    for catheterIndex in xrange( 0, numberOfCatheters ):
+      catheterPointsNode = modelHierarchyNode.GetNthChildNode( catheterIndex ).GetModelNode()
+      catheterPointsNode.SetName( pathsNode.GetName() + "_CatheterPoints" + str( catheterIndex ) )
+      catheterPathNode = slicer.vtkMRMLModelNode()
+      slicer.mrmlScene.AddNode( catheterPathNode )
+      catheterPathNode.SetName( pathsNode.GetName() + "_CatheterPath" + str( catheterIndex ) )
+      catheterPathNode.CreateDefaultDisplayNodes()
+      pathsNode.AddPointsPathPairModelNodeIDs( catheterPointsNode.GetID(), catheterPathNode.GetID() )
 
   def trimPoints( self, pathsNode, trimDistance ):
     if not pathsNode:
@@ -326,6 +380,7 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
   
   def refitPath( self, pathNode ):
     markupsToModelNode = pathNode.GetMarkupsToModelNode()
+    markupsToModelNode.SetModelType( slicer.vtkMRMLMarkupsToModelNode.Curve )
     markupsToModelNode.SetCurveType( slicer.vtkMRMLMarkupsToModelNode.Polynomial )
     markupsToModelNode.SetPolynomialFitType( slicer.vtkMRMLMarkupsToModelNode.MovingLeastSquares )
     markupsToModelNode.SetPolynomialOrder( 1 )
