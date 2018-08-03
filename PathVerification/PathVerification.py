@@ -137,6 +137,10 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.compareToReferenceTransformComboBox.setMRMLScene( slicer.mrmlScene )
     verificationFormLayout.addRow("CompareToReference Transform: ", self.compareToReferenceTransformComboBox)
 
+    self.registerButton = qt.QPushButton("Register")
+    self.registerButton.enabled = False
+    verificationFormLayout.addRow(self.registerButton)
+
     self.outputDistancesTableComboBox = slicer.qMRMLNodeComboBox()
     self.outputDistancesTableComboBox.nodeTypes = ["vtkMRMLTableNode"]
     self.outputDistancesTableComboBox.selectNodeUponCreation = True
@@ -159,9 +163,9 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.outputSummaryTableComboBox.setMRMLScene( slicer.mrmlScene )
     verificationFormLayout.addRow("Summary Table: ", self.outputSummaryTableComboBox)
 
-    self.verifyButton = qt.QPushButton("Verify")
-    self.verifyButton.enabled = False
-    verificationFormLayout.addRow(self.verifyButton)
+    self.computeButton = qt.QPushButton("Compute")
+    self.computeButton.enabled = False
+    verificationFormLayout.addRow(self.computeButton)
 
     # connections
     self.trimPathsComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
@@ -173,9 +177,10 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.compareEndMarkupsComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
     self.registrationComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
     self.compareToReferenceTransformComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
+    self.registerButton.connect('clicked(bool)', self.onRegisterButton)
     self.outputDistancesTableComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
     self.outputSummaryTableComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
-    self.verifyButton.connect('clicked(bool)', self.onVerifyButton)
+    self.computeButton.connect('clicked(bool)', self.onComputeButton)
 
     # Add vertical spacer
     self.layout.addStretch(1)
@@ -187,13 +192,15 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     pass
 
   def onNodeChanged(self):
-    self.verifyButton.enabled = self.referencePathsComboBox.currentNode() and \
-                                self.comparePathsComboBox.currentNode()
     self.trimButton.enabled = self.trimPathsComboBox.currentNode()
     self.refitButton.enabled = self.trimPathsComboBox.currentNode()
+    self.registerButton.enabled = self.referencePathsComboBox.currentNode() and \
+                                  self.comparePathsComboBox.currentNode()
+    self.computeButton.enabled = self.referencePathsComboBox.currentNode() and \
+                                 self.comparePathsComboBox.currentNode() and \
+                                 self.compareToReferenceTransformComboBox.currentNode()
 
-  def onVerifyButton(self):
-    logic = PathVerificationLogic()
+  def onRegisterButton(self):
     referencePathsNode = self.referencePathsComboBox.currentNode()
     comparePathsNode = self.comparePathsComboBox.currentNode()
     referenceEndMarkupsNode = self.referenceEndMarkupsComboBox.currentNode()
@@ -220,35 +227,42 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
       compareToReferenceTransformNode.SetName("compareToReferenceTransformNode")
       slicer.mrmlScene.AddNode(compareToReferenceTransformNode)
       self.compareToReferenceTransformComboBox.setCurrentNode(compareToReferenceTransformNode)
-    outputDistancesTableNode = self.outputDistancesTableComboBox.currentNode()
-    if not outputDistancesTableNode:
-      outputDistancesTableNode = slicer.vtkMRMLTableNode()
-      outputDistancesTableNode.SetName("outputDistancesTableNode")
-      slicer.mrmlScene.AddNode(outputDistancesTableNode)
-      self.outputDistancesTableComboBox.setCurrentNode(outputDistancesTableNode)
+    logic = PathVerificationLogic()
+    logic.registerPaths(referencePathsNode, comparePathsNode, \
+                        referenceEndMarkupsNode, compareEndMarkupsNode, \
+                        registrationNode, compareToReferenceTransformNode)
+
+  def onComputeButton(self):
+    referencePathsNode = self.referencePathsComboBox.currentNode()
+    comparePathsNode = self.comparePathsComboBox.currentNode()
+    compareToReferenceTransformNode = self.compareToReferenceTransformComboBox.currentNode()
     outputSummaryTableNode = self.outputSummaryTableComboBox.currentNode()
     if not outputSummaryTableNode:
       outputSummaryTableNode = slicer.vtkMRMLTableNode()
       outputSummaryTableNode.SetName("outputSummaryTableNode")
       slicer.mrmlScene.AddNode(outputSummaryTableNode)
       self.outputSummaryTableComboBox.setCurrentNode(outputSummaryTableNode)
-    success = logic.verifyPaths(referencePathsNode, comparePathsNode, \
-                                referenceEndMarkupsNode, compareEndMarkupsNode, \
-                                registrationNode, compareToReferenceTransformNode, \
-                                outputDistancesTableNode, outputSummaryTableNode)
-    if not success:
-      logging.warning("Did not complete path verification.")
+    outputDistancesTableNode = self.outputDistancesTableComboBox.currentNode()
+    if not outputDistancesTableNode:
+      outputDistancesTableNode = slicer.vtkMRMLTableNode()
+      outputDistancesTableNode.SetName("outputDistancesTableNode")
+      slicer.mrmlScene.AddNode(outputDistancesTableNode)
+      self.outputDistancesTableComboBox.setCurrentNode(outputDistancesTableNode)
+    logic = PathVerificationLogic()
+    logic.computeStatistics(referencePathsNode, comparePathsNode, \
+                            compareToReferenceTransformNode, \
+                            outputDistancesTableNode, outputSummaryTableNode)
 
   def onTrimButton(self):
-    logic = PathVerificationLogic()
     trimPathsNode = self.trimPathsComboBox.currentNode()
     trimDistance = self.trimAmountSpinBox.value
+    logic = PathVerificationLogic()
     logic.trimPoints( trimPathsNode, trimDistance )
     self.trimAmountSpinBox.setValue( 0 ) # avoid trimming twice by accident (e.g. double click)
 
   def onRefitButton(self):
-    logic = PathVerificationLogic()
     trimPathsNode = self.trimPathsComboBox.currentNode()
+    logic = PathVerificationLogic()
     logic.refitPath( trimPathsNode )
 
 #
@@ -323,18 +337,15 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
     markupsToModelNode.SetTubeNumberOfSides( 4 )
     slicer.modules.pathreconstruction.logic().RefitAllPaths( pathNode )
   
-  def verifyPaths(self, referencePathsNode, comparePathsNode, \
-                        referenceEndMarkupsNode, compareEndMarkupsNode, \
-                        registrationNode, compareToReferenceLinearTransformNode, \
-                        outputDistancesTableNode, outputSummaryTableNode):
+  def registerPaths(self, referencePathsNode, comparePathsNode, \
+                          referenceEndMarkupsNode, compareEndMarkupsNode, \
+                          registrationNode, compareToReferenceLinearTransformNode):
     if not referencePathsNode or \
        not comparePathsNode or \
        not referenceEndMarkupsNode or \
        not compareEndMarkupsNode or \
        not registrationNode or \
-       not compareToReferenceLinearTransformNode or \
-       not outputDistancesTableNode or \
-       not outputSummaryTableNode:
+       not compareToReferenceLinearTransformNode:
       logging.error("A node is null. Check nodes for null.")
       return False
 
@@ -351,9 +362,6 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
 
     # make compare paths observe the registration transform node. This is purely cosmetic, does not touch underlying data
     self.setCompareDataToObserveRegistration( comparePathsNode, compareEndMarkupsNode, compareToReferenceLinearTransformNode )
-
-    # compute the desired statistics
-    self.computeStatistics( referencePathsNode, comparePathsNode, compareToReferenceLinearTransformNode, outputDistancesTableNode, outputSummaryTableNode)
 
     return True
 
@@ -456,6 +464,12 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
     summaryLabelArray.SetName( "Label" )
     summarySuffixArray = vtk.vtkIntArray()
     summarySuffixArray.SetName( "Suffix" )
+    summaryLengthArray = vtk.vtkDoubleArray()
+    summaryLengthArray.SetName( "Length" )
+    summaryInputPointCountArray = vtk.vtkIntArray()
+    summaryInputPointCountArray.SetName( "Point Count" )
+    summaryDistanceCountArray = vtk.vtkIntArray()
+    summaryDistanceCountArray.SetName( "Distance Count" )
     summaryMeanArray = vtk.vtkDoubleArray()
     summaryMeanArray.SetName( "Mean" )
     summaryStdevArray = vtk.vtkDoubleArray()
@@ -483,7 +497,6 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
     for compareSuffixIndex in xrange( 0, numberOfCompareSuffixes ):
       compareSuffix = int(compareSuffixArray.GetComponent( compareSuffixIndex, 0 ) )
       comparePathModelNode = comparePathsNode.GetPathModelNodeBySuffix( compareSuffix )
-      comparePathModelNode.SetAndObserveTransformNodeID( compareToReferenceLinearTransformNode.GetID() )
       unregisteredComparePathPolyData = comparePathModelNode.GetPolyData()
       compareToReferenceTransformFilter = vtk.vtkTransformPolyDataFilter()
       compareToReferenceTransformFilter.SetTransform( compareToReferenceLinearTransformNode.GetTransformToParent() )
@@ -530,6 +543,12 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
 
       summaryLabelArray.InsertNextValue( comparePathsName )
       summarySuffixArray.InsertNextTuple1( compareSuffix )
+      catheterLength = float( comparePathModelNode.GetAttribute( slicer.vtkMRMLMarkupsToModelNode.GetOutputCurveLengthAttributeName() ) )
+      summaryLengthArray.InsertNextTuple1( catheterLength )
+      comparePointsModelNode = comparePathsNode.GetPointsModelNodeBySuffix( compareSuffix )
+      numberOfPoints = comparePointsModelNode.GetPolyData().GetPoints().GetNumberOfPoints()
+      summaryInputPointCountArray.InsertNextTuple1( numberOfPoints )
+      summaryDistanceCountArray.InsertNextTuple1( numberOfRawDistances / 4 )
       summaryMeanArray.InsertNextTuple1( polyDataDistanceFilter.GetAverageHausdorffDistance() )
       summaryStdevArray.InsertNextTuple1( polyDataDistanceFilter.GetStandardDeviationHausdorffDistance() )
       summaryPercentile000Array.InsertNextTuple1( polyDataDistanceFilter.GetNthPercentileHausdorffDistance( 0 ) )
@@ -549,6 +568,9 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
     outputSummaryTableNode.RemoveAllColumns()
     outputSummaryTableNode.AddColumn( summaryLabelArray )
     outputSummaryTableNode.AddColumn( summarySuffixArray )
+    outputSummaryTableNode.AddColumn( summaryLengthArray )
+    outputSummaryTableNode.AddColumn( summaryInputPointCountArray )
+    outputSummaryTableNode.AddColumn( summaryDistanceCountArray )
     outputSummaryTableNode.AddColumn( summaryMeanArray )
     outputSummaryTableNode.AddColumn( summaryStdevArray )
     outputSummaryTableNode.AddColumn( summaryPercentile000Array )
