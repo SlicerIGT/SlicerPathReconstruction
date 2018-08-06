@@ -266,33 +266,29 @@ void qSlicerPathReconstructionTableWidget::updateGUIFromMRML()
   }
 
   // Update the fitting parameters
-  bool wasBlockedFittingParameters = d->FittingParametersComboBox->blockSignals( true );
   bool wasBlockedFittingColor = d->FittingColorPicker->blockSignals( true );
-
-  vtkMRMLMarkupsToModelNode* fittingParametersNode = currentPathReconstructionNode->GetMarkupsToModelNode();
-  if ( fittingParametersNode != NULL )
-  {
-    d->FittingParametersComboBox->setCurrentNode( fittingParametersNode );
-    d->FittingParametersComboBox->setEnabled( true );
-    d->FittingColorPicker->setEnabled( true );
-    d->RefitPathsButton->setEnabled( true );
-  }
-  else
-  {
-    d->FittingParametersComboBox->setEnabled( false );
-    d->FittingColorPicker->setEnabled( false );
-    d->RefitPathsButton->setEnabled( false );
-  }
-
+  d->FittingColorPicker->setEnabled( true );
   QColor pathColor;
   double pathRed = currentPathReconstructionNode->GetPathColorRed();
   double pathGreen = currentPathReconstructionNode->GetPathColorGreen();
   double pathBlue = currentPathReconstructionNode->GetPathColorBlue();
   pathColor.setRgbF( pathRed, pathGreen, pathBlue );
   d->FittingColorPicker->setColor( pathColor );
-
-  d->FittingParametersComboBox->blockSignals( wasBlockedFittingParameters );
   d->FittingColorPicker->blockSignals( wasBlockedFittingColor );
+
+  bool wasBlockedFittingParameters = d->FittingParametersComboBox->blockSignals( true );
+  d->FittingParametersComboBox->setEnabled( true ); 
+  vtkMRMLMarkupsToModelNode* fittingParametersNode = currentPathReconstructionNode->GetMarkupsToModelNode();
+  if ( fittingParametersNode != NULL )
+  {
+    d->FittingParametersComboBox->setCurrentNode( fittingParametersNode );
+    d->RefitPathsButton->setEnabled( true );
+  }
+  else
+  {
+    d->RefitPathsButton->setEnabled( false );
+  }
+  d->FittingParametersComboBox->blockSignals( wasBlockedFittingParameters );
 
   // Update the fiducials table
   bool wasBlockedTableWidget = d->PathsTable->blockSignals( true );
