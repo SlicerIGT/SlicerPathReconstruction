@@ -338,6 +338,12 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
     suffixArray = vtk.vtkIntArray()
     pathsNode.GetSuffixes( suffixArray )
     numberOfSuffixes = suffixArray.GetNumberOfTuples()
+    if numberOfSuffixes <= 0:
+      logging.warning("There are no paths")
+      return
+    
+    # Record the direction of each catheter
+    directions = {}
     for suffixIndex in xrange( 0, numberOfSuffixes ):
       suffix = int(suffixArray.GetComponent( suffixIndex, 0 ) )
       pointsModelNode = pathsNode.GetPointsModelNodeBySuffix( suffix )
@@ -356,17 +362,74 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
             farthestDistance2 = distance2
             farthestPoint1 = point1
             farthestPoint2 = point2
-      # make new list of points that are at least trimDistance away
-      newPoints = vtk.vtkPoints()
-      newVerts = vtk.vtkCellArray()
-      trimDistance2 = trimDistance * trimDistance
+      direction = [ 0, 0, 0 ]
+      direction[ 0 ] = farthestPoint2[ 0 ] - farthestPoint1[ 0 ]
+      direction[ 1 ] = farthestPoint2[ 1 ] - farthestPoint1[ 1 ]
+      direction[ 2 ] = farthestPoint2[ 2 ] - farthestPoint1[ 2 ]
+      directions[ suffix ] = direction
+
+    # Determine the 'average' direction of catetheters
+    sumOfDirections = [ 0, 0, 0 ]
+    firstDirection = [ 0, 0, 0 ]
+    for suffixIndex in xrange( 0, numberOfSuffixes ):
+      suffix = int(suffixArray.GetComponent( suffixIndex, 0 ) )
+      direction = directions[ suffix ]
+      if suffixIndex == 0:
+        firstDirection = direction
+      invertDirection = ( vtk.vtkMath.Dot( firstDirection, direction ) > 0 )
+      if invertDirection == True:
+        sumOfDirections[ 0 ] -= direction[ 0 ]
+        sumOfDirections[ 1 ] -= direction[ 1 ]
+        sumOfDirections[ 2 ] -= direction[ 2 ]
+      else:
+        sumOfDirections[ 0 ] += direction[ 0 ]
+        sumOfDirections[ 1 ] += direction[ 1 ]
+        sumOfDirections[ 2 ] += direction[ 2 ]
+    averageDirection = [ 0, 0, 0 ]
+    averageDirection[ 0 ] = sumOfDirections[ 0 ] / numberOfSuffixes
+    averageDirection[ 1 ] = sumOfDirections[ 1 ] / numberOfSuffixes
+    averageDirection[ 2 ] = sumOfDirections[ 2 ] / numberOfSuffixes
+    vtk.vtkMath.Normalize( averageDirection )
+
+    # Determine threshold values for filtering out points
+    shortestMinimumAlongAverageDirection = float( "-inf" )
+    shortestMaximumAlongAverageDirection = float( "inf" )
+    for suffixIndex in xrange( 0, numberOfSuffixes ):
+      suffix = int(suffixArray.GetComponent( suffixIndex, 0 ) )
+      pointsModelNode = pathsNode.GetPointsModelNodeBySuffix( suffix )
+      points = pointsModelNode.GetPolyData().GetPoints()
+      numberOfPoints = points.GetNumberOfPoints()
+      minimumAlongAverageDirection = float( "inf" )
+      maximumAlongAverageDirection = float( "-inf" )
       for pointIndex in xrange( 0, numberOfPoints ):
         point = points.GetPoint( pointIndex )
-        distance2 = vtk.vtkMath.Distance2BetweenPoints( farthestPoint1, point )
-        if distance2 < trimDistance2:
+        pointAlongAverageDirection = vtk.vtkMath.Dot( point, averageDirection )
+        if pointAlongAverageDirection < minimumAlongAverageDirection:
+          minimumAlongAverageDirection = pointAlongAverageDirection
+        if pointAlongAverageDirection > maximumAlongAverageDirection:
+          maximumAlongAverageDirection = pointAlongAverageDirection
+      if minimumAlongAverageDirection > shortestMinimumAlongAverageDirection:
+        shortestMinimumAlongAverageDirection = minimumAlongAverageDirection
+      if maximumAlongAverageDirection < shortestMaximumAlongAverageDirection:
+        shortestMaximumAlongAverageDirection = maximumAlongAverageDirection
+    shortestMinimumAlongAverageDirection += trimDistance
+    shortestMaximumAlongAverageDirection -= trimDistance
+    
+    # Do the actual filtering
+    for suffixIndex in xrange( 0, numberOfSuffixes ):
+      suffix = int(suffixArray.GetComponent( suffixIndex, 0 ) )
+      pointsModelNode = pathsNode.GetPointsModelNodeBySuffix( suffix )
+      points = pointsModelNode.GetPolyData().GetPoints()
+      numberOfPoints = points.GetNumberOfPoints()
+      # make new list of points that are within the non-trimmed region
+      newPoints = vtk.vtkPoints()
+      newVerts = vtk.vtkCellArray()
+      for pointIndex in xrange( 0, numberOfPoints ):
+        point = points.GetPoint( pointIndex )
+        pointAlongAverageDirection = vtk.vtkMath.Dot( point, averageDirection )
+        if pointAlongAverageDirection < shortestMinimumAlongAverageDirection:
           continue
-        distance2 = vtk.vtkMath.Distance2BetweenPoints( farthestPoint2, point )
-        if distance2 < trimDistance2:
+        if pointAlongAverageDirection > shortestMaximumAlongAverageDirection:
           continue
         newPoints.InsertNextPoint( point )
         newPointIndex = newPoints.GetNumberOfPoints() - 1
