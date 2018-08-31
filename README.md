@@ -2,6 +2,9 @@
 
 **SlicerPathReconstruction** is an extension of [3D Slicer](https://www.slicer.org/) for creating 3D surface models of catheters from a spatially tracked wire (*e.g.* transform updated through SlicerOpenIGTLink). The user specifies which transform corresponds to the wire then records points along the length of the catheters. The main output is a pair of model nodes for each catheter - one model node for storing raw points, and one for storing a surface representation of the catheter.
 
+![GUI](https://raw.githubusercontent.com/SlicerIGT/SlicerPathReconstruction/master/Screenshots/BreastBrachyExample.png)
+> Catheter paths generated from a breast brachytherapy phantom
+
 ## Dependencies
 
 - [SlicerMarkupsToModel](https://github.com/SlicerIGT/SlicerMarkupsToModel)
@@ -14,7 +17,7 @@
 
 This module contains the main functionality for this extension.
 
-![Overview](https://raw.githubusercontent.com/SlicerIGT/SlicerPathReconstruction/master/Screenshots/PathReconstructionGUI.png?raw=true)
+![Overview](https://raw.githubusercontent.com/SlicerIGT/SlicerPathReconstruction/master/Screenshots/PathReconstructionModule.png)
 > The GUI for PathReconstruction
 
 The **parameter node** is used to store all options settings for the module. The parameter node can also be saved along with a Slicer scene. When the scene is later re-opened, all options and settings should be preserved.
@@ -29,7 +32,7 @@ The **paths** tab shows all of the output model nodes that have been created by 
 
 This module is for checking how much catheter paths correspond with one another (*e.g.* tracked paths generated using the *PathReconstruction* module versus paths determined from CT). This module is mainly intended as a development aid, but some researchers may find its functionality useful. Please keep in mind that, due to its experimental nature, its features are not fully supported.
 
-![GUI](https://raw.githubusercontent.com/SlicerIGT/SlicerMarkupsToModel/master/Screenshots/PathVerificationGUI.png?raw=true)
+![GUI](https://raw.githubusercontent.com/SlicerIGT/SlicerPathReconstruction/master/Screenshots/PathVerificationModule.png)
 > The GUI for PathVerification
 
 You can set a segmentation (*e.g.* of catheters in a CT scan) in the **segmented paths** selector, and convert each segment into a catheter path by pressing the **export segments to path** button. They will be stored in the **paths to preprocess** (path reconstruction node).
