@@ -9,7 +9,9 @@
 
 - [SlicerMarkupsToModel](https://github.com/SlicerIGT/SlicerMarkupsToModel)
 
-- [SlicerIGT](https://github.com/SlicerIGT)
+- [SlicerIGT](https://github.com/SlicerIGT/SlicerIGT/)
+
+- [SlicerRT](https://github.com/SlicerRt/SlicerRT)
 
 - [SlicerOpenIGTLink](https://github.com/openigtlink/SlicerOpenIGTLink) (Recommended)
 

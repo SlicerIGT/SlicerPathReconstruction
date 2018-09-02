@@ -10,7 +10,7 @@ set(EXTENSION_CONTRIBUTORS "Thomas Vaughan (Queen's University)")
 set(EXTENSION_DESCRIPTION "This extension contains a module for reconstructing catheter paths from spatial tracking information. Intended users should have real-time tracking hardware (e.g. electromagnetic field generator and sensors) connected to 3D Slicer through OpenIGTLink network." )
 set(EXTENSION_ICONURL "http://www.slicer.org/slicerWiki/images/2/2b/SlicerIGTLogo.png" )
 set(EXTENSION_SCREENSHOTURLS "http://www.slicer.org/slicerWiki/images/7/78/SlicerIGTScreenshot.png" )
-set(EXTENSION_DEPENDS SlicerIGT MarkupsToModel ) # Specified as a space separated list or 'NA' if any
+set(EXTENSION_DEPENDS SlicerIGT SlicerRT MarkupsToModel ) # Specified as a space separated list or 'NA' if any
 
 #-----------------------------------------------------------------------------
 # Extension dependencies
