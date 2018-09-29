@@ -143,6 +143,36 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.registrationComboBox.setMRMLScene( slicer.mrmlScene )
     verificationFormLayout.addRow("Fiducial Registration: ", self.registrationComboBox)
 
+    self.compareToInitialTransformComboBox = slicer.qMRMLNodeComboBox()
+    self.compareToInitialTransformComboBox.nodeTypes = ["vtkMRMLLinearTransformNode"]
+    self.compareToInitialTransformComboBox.selectNodeUponCreation = True
+    self.compareToInitialTransformComboBox.addEnabled = True
+    self.compareToInitialTransformComboBox.removeEnabled = True
+    self.compareToInitialTransformComboBox.noneEnabled = True
+    self.compareToInitialTransformComboBox.showHidden = False
+    self.compareToInitialTransformComboBox.showChildNodeTypes = False
+    self.compareToInitialTransformComboBox.setMRMLScene( slicer.mrmlScene )
+    verificationFormLayout.addRow("CompareToInitial Transform: ", self.compareToInitialTransformComboBox)
+
+    self.registerInitialButton = qt.QPushButton("Register Initial")
+    self.registerInitialButton.enabled = False
+    verificationFormLayout.addRow(self.registerInitialButton)
+
+    self.initialToReferenceTransformComboBox = slicer.qMRMLNodeComboBox()
+    self.initialToReferenceTransformComboBox.nodeTypes = ["vtkMRMLLinearTransformNode"]
+    self.initialToReferenceTransformComboBox.selectNodeUponCreation = True
+    self.initialToReferenceTransformComboBox.addEnabled = True
+    self.initialToReferenceTransformComboBox.removeEnabled = True
+    self.initialToReferenceTransformComboBox.noneEnabled = True
+    self.initialToReferenceTransformComboBox.showHidden = False
+    self.initialToReferenceTransformComboBox.showChildNodeTypes = False
+    self.initialToReferenceTransformComboBox.setMRMLScene( slicer.mrmlScene )
+    verificationFormLayout.addRow("InitialToReference Transform: ", self.initialToReferenceTransformComboBox)
+
+    self.registerICPButton = qt.QPushButton("Register ICP")
+    self.registerICPButton.enabled = False
+    verificationFormLayout.addRow(self.registerICPButton)
+
     self.compareToReferenceTransformComboBox = slicer.qMRMLNodeComboBox()
     self.compareToReferenceTransformComboBox.nodeTypes = ["vtkMRMLLinearTransformNode"]
     self.compareToReferenceTransformComboBox.selectNodeUponCreation = True
@@ -154,9 +184,9 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.compareToReferenceTransformComboBox.setMRMLScene( slicer.mrmlScene )
     verificationFormLayout.addRow("CompareToReference Transform: ", self.compareToReferenceTransformComboBox)
 
-    self.registerButton = qt.QPushButton("Register")
-    self.registerButton.enabled = False
-    verificationFormLayout.addRow(self.registerButton)
+    self.concatenateRegistrationButton = qt.QPushButton("Concatenate Registration")
+    self.concatenateRegistrationButton.enabled = False
+    verificationFormLayout.addRow(self.concatenateRegistrationButton)
 
     self.outputDistancesTableComboBox = slicer.qMRMLNodeComboBox()
     self.outputDistancesTableComboBox.nodeTypes = ["vtkMRMLTableNode"]
@@ -195,8 +225,12 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.referenceEndMarkupsComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
     self.compareEndMarkupsComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
     self.registrationComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
+    self.compareToInitialTransformComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
+    self.registerInitialButton.connect('clicked(bool)', self.onRegisterInitialButton)
+    self.initialToReferenceTransformComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
+    self.registerICPButton.connect('clicked(bool)', self.onRegisterICPButton)
     self.compareToReferenceTransformComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
-    self.registerButton.connect('clicked(bool)', self.onRegisterButton)
+    self.concatenateRegistrationButton.connect('clicked(bool)', self.onConcatenateRegistrationButton)
     self.outputDistancesTableComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
     self.outputSummaryTableComboBox.connect("currentNodeChanged(vtkMRMLNode*)", self.onNodeChanged)
     self.computeButton.connect('clicked(bool)', self.onComputeButton)
@@ -214,13 +248,21 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.segmentExportButton.enabled = self.segmentationComboBox.currentNode()
     self.trimButton.enabled = self.preprocessPathsComboBox.currentNode()
     self.refitButton.enabled = self.preprocessPathsComboBox.currentNode()
-    self.registerButton.enabled = self.referencePathsComboBox.currentNode() and \
-                                  self.comparePathsComboBox.currentNode()
+    self.registerInitialButton.enabled = self.referencePathsComboBox.currentNode() and \
+                                         self.comparePathsComboBox.currentNode()
+    self.registerICPButton.enabled = self.referencePathsComboBox.currentNode() and \
+                                     self.compareEndMarkupsComboBox.currentNode() and \
+                                     self.comparePathsComboBox.currentNode() and \
+                                     self.compareToInitialTransformComboBox.currentNode()
+    self.concatenateRegistrationButton.enabled = self.comparePathsComboBox.currentNode() and \
+                                                 self.compareEndMarkupsComboBox.currentNode() and \
+                                                 self.compareToInitialTransformComboBox.currentNode() and \
+                                                 self.initialToReferenceTransformComboBox.currentNode()
     self.computeButton.enabled = self.referencePathsComboBox.currentNode() and \
                                  self.comparePathsComboBox.currentNode() and \
                                  self.compareToReferenceTransformComboBox.currentNode()
 
-  def onRegisterButton(self):
+  def onRegisterInitialButton(self):
     referencePathsNode = self.referencePathsComboBox.currentNode()
     comparePathsNode = self.comparePathsComboBox.currentNode()
     label = comparePathsNode.GetName()
@@ -240,8 +282,44 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     if not registrationNode:
       registrationNode = slicer.vtkMRMLFiducialRegistrationWizardNode()
       registrationNode.SetName( label + "RegistrationNode" )
+      registrationNode.SetUpdateModeToManual()
+      registrationNode.SetPointMatchingToComputed()
+      registrationNode.SetRegistrationModeToRigid()
       slicer.mrmlScene.AddNode(registrationNode)
       self.registrationComboBox.setCurrentNode(registrationNode)
+    compareToInitialTransformNode = self.compareToInitialTransformComboBox.currentNode()
+    if not compareToInitialTransformNode:
+      compareToInitialTransformNode = slicer.vtkMRMLLinearTransformNode()
+      compareToInitialTransformNode.SetName( label + "CompareToInitialTransformNode" )
+      slicer.mrmlScene.AddNode(compareToInitialTransformNode)
+      self.compareToInitialTransformComboBox.setCurrentNode(compareToInitialTransformNode)
+    logic = PathVerificationLogic()
+    logic.performRegistrationInitial(referencePathsNode, comparePathsNode, \
+                                     referenceEndMarkupsNode, compareEndMarkupsNode, \
+                                     registrationNode, compareToInitialTransformNode)
+
+  def onRegisterICPButton(self):
+    logging.debug('onRegisterICPButton')
+    referencePathsNode = self.referencePathsComboBox.currentNode()
+    comparePathsNode = self.comparePathsComboBox.currentNode()
+    label = comparePathsNode.GetName()
+    compareToInitialTransformNode = self.compareToInitialTransformComboBox.currentNode()
+    initialToReferenceTransformNode = self.initialToReferenceTransformComboBox.currentNode()
+    if not initialToReferenceTransformNode:
+      initialToReferenceTransformNode = slicer.vtkMRMLLinearTransformNode()
+      initialToReferenceTransformNode.SetName( label + "InitialToReferenceTransformNode" )
+      slicer.mrmlScene.AddNode(initialToReferenceTransformNode)
+      self.initialToReferenceTransformComboBox.setCurrentNode(initialToReferenceTransformNode)
+    logic = PathVerificationLogic()
+    logic.performRegistrationICP(referencePathsNode, comparePathsNode, \
+                                 compareToInitialTransformNode, initialToReferenceTransformNode)
+
+  def onConcatenateRegistrationButton(self):
+    comparePathsNode = self.comparePathsComboBox.currentNode()
+    label = comparePathsNode.GetName()
+    compareEndMarkupsNode = self.compareEndMarkupsComboBox.currentNode()
+    compareToInitialTransformNode = self.compareToInitialTransformComboBox.currentNode()
+    initialToReferenceTransformNode = self.initialToReferenceTransformComboBox.currentNode()
     compareToReferenceTransformNode = self.compareToReferenceTransformComboBox.currentNode()
     if not compareToReferenceTransformNode:
       compareToReferenceTransformNode = slicer.vtkMRMLLinearTransformNode()
@@ -249,9 +327,9 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
       slicer.mrmlScene.AddNode(compareToReferenceTransformNode)
       self.compareToReferenceTransformComboBox.setCurrentNode(compareToReferenceTransformNode)
     logic = PathVerificationLogic()
-    logic.registerPaths(referencePathsNode, comparePathsNode, \
-                        referenceEndMarkupsNode, compareEndMarkupsNode, \
-                        registrationNode, compareToReferenceTransformNode)
+    logic.concatenateRegistration(comparePathsNode, compareEndMarkupsNode, \
+                                  compareToInitialTransformNode, initialToReferenceTransformNode, \
+                                  compareToReferenceTransformNode)
 
   def onComputeButton(self):
     referencePathsNode = self.referencePathsComboBox.currentNode()
@@ -460,28 +538,8 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
   def registerPaths(self, referencePathsNode, comparePathsNode, \
                           referenceEndMarkupsNode, compareEndMarkupsNode, \
                           registrationNode, compareToReferenceLinearTransformNode):
-    if not referencePathsNode or \
-       not comparePathsNode or \
-       not referenceEndMarkupsNode or \
-       not compareEndMarkupsNode or \
-       not registrationNode or \
-       not compareToReferenceLinearTransformNode:
-      logging.error("A node is null. Check nodes for null.")
-      return False
-
-    # align catheter paths
-    referenceCombinedPolyData = vtk.vtkPolyData()
-    self.computeCombinePolyData( referencePathsNode, referenceCombinedPolyData )
-    self.computeEndMarkups( referencePathsNode, referenceEndMarkupsNode )
-    compareCombinedPolyData = vtk.vtkPolyData()
-    self.computeCombinePolyData( comparePathsNode, compareCombinedPolyData )
-    self.computeEndMarkups( comparePathsNode, compareEndMarkupsNode )
-    self.performRegistration( referenceEndMarkupsNode, compareEndMarkupsNode, \
-                              referenceCombinedPolyData, compareCombinedPolyData,
-                              registrationNode, compareToReferenceLinearTransformNode )
 
     # make compare paths observe the registration transform node. This is purely cosmetic, does not touch underlying data
-    self.setCompareDataToObserveRegistration( comparePathsNode, compareEndMarkupsNode, compareToReferenceLinearTransformNode )
 
     return True
 
@@ -514,24 +572,54 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
       lastPoint = points.GetPoint( numberOfPoints - 1 )
       endMarkupsNode.AddFiducialFromArray( lastPoint )
 
-  def performRegistration( self, referenceEndMarkupsNode, compareEndMarkupsNode, \
-                                 referenceCombinedPolyData, compareCombinedPolyData, \
-                                 registrationNode, transformNode ):
+  def performRegistrationInitial( self, referencePathsNode, comparePathsNode, \
+                                  referenceEndMarkupsNode, compareEndMarkupsNode, \
+                                  registrationNode, compareToInitialTransformNode ):
+    if not referencePathsNode or \
+       not comparePathsNode or \
+       not referenceEndMarkupsNode or \
+       not compareEndMarkupsNode or \
+       not registrationNode or \
+       not compareToInitialTransformNode:
+      logging.error("A node is null. Check nodes for null.")
+      return False
+
+    self.computeEndMarkups( referencePathsNode, referenceEndMarkupsNode )
+    self.computeEndMarkups( comparePathsNode, compareEndMarkupsNode )
+    
     # perform an initial registration based on the endpoints of the catheters
     # transformNode is used as a container here to store an intermediate result
     # The final result is computed later on
-    registrationNode.SetUpdateModeToManual()
-    registrationNode.SetPointMatchingToComputed()
-    registrationNode.SetRegistrationModeToRigid()
     registrationNode.SetAndObserveFromFiducialListNodeId( compareEndMarkupsNode.GetID() )
     registrationNode.SetAndObserveToFiducialListNodeId( referenceEndMarkupsNode.GetID() )
-    registrationNode.SetOutputTransformNodeId( transformNode.GetID() )
+    registrationNode.SetOutputTransformNodeId( compareToInitialTransformNode.GetID() )
     registrationLogic = slicer.modules.fiducialregistrationwizard.logic()
     registrationLogic.UpdateCalibration( registrationNode )
 
+    # Update transform hierarchy
+    self.setCompareDataToObserveRegistration( comparePathsNode, compareEndMarkupsNode, compareToInitialTransformNode )
+
+    return True
+
+  def performRegistrationICP( self, referencePathsNode, comparePathsNode, \
+                              compareToInitialTransformNode, initialToReferenceTransformNode ):
+    logging.debug('performRegistrationICP')
+
+    if not referencePathsNode or \
+       not comparePathsNode or \
+       not compareToInitialTransformNode or \
+       not initialToReferenceTransformNode:
+      logging.error("A node is null. Check nodes for null.")
+      return False
+
+    referenceCombinedPolyData = vtk.vtkPolyData()
+    self.computeCombinePolyData( referencePathsNode, referenceCombinedPolyData )
+    compareCombinedPolyData = vtk.vtkPolyData()
+    self.computeCombinePolyData( comparePathsNode, compareCombinedPolyData )
+
     # transform is preliminary, only contains the initial alignment
     # still need to run ICP on the combined model pairs
-    initialAlignmentTransform = transformNode.GetTransformToParent()
+    initialAlignmentTransform = compareToInitialTransformNode.GetTransformToParent()
     initialAlignmentTransformFilter = vtk.vtkTransformPolyDataFilter()
     initialAlignmentTransformFilter.SetTransform( initialAlignmentTransform )
     initialAlignmentTransformFilter.SetInputData( compareCombinedPolyData )
@@ -543,30 +631,44 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
     icpTransform.GetLandmarkTransform().SetModeToRigidBody()
     icpTransform.Update()
 
-    # concatenate the initial transform with the icp
     icpMatrix = vtk.vtkMatrix4x4()
     icpTransform.GetMatrix( icpMatrix )
+    initialToReferenceTransformNode.SetMatrixTransformToParent( icpMatrix )
+
+    # Update transform hierarchy
+    compareToInitialTransformNode.SetAndObserveTransformNodeID( initialToReferenceTransformNode.GetID() )
+
+    return True
+
+  def concatenateRegistration( self, comparePathsNode, compareEndMarkupsNode, \
+                               compareToInitialTransformNode, initialToReferenceTransformNode, \
+                               compareToReferenceTransformNode ):
     initialAlignmentMatrix = vtk.vtkMatrix4x4()
-    transformNode.GetMatrixTransformToParent( initialAlignmentMatrix )
+    compareToInitialTransformNode.GetMatrixTransformToParent( initialAlignmentMatrix )
+    icpMatrix = vtk.vtkMatrix4x4()
+    initialToReferenceTransformNode.GetMatrixTransformToParent( icpMatrix )
     concatenatedTransform = vtk.vtkTransform()
     concatenatedTransform.PostMultiply()
     concatenatedTransform.Concatenate( initialAlignmentMatrix )
     concatenatedTransform.Concatenate( icpMatrix )
+    compareToReferenceTransformNode.SetAndObserveTransformToParent( concatenatedTransform )
 
-    # Update transformNode to store the final concatenated matrix
-    transformNode.SetAndObserveTransformToParent( concatenatedTransform )
+    # Update transfrom hierarchy
+    self.setCompareDataToObserveRegistration( comparePathsNode, compareEndMarkupsNode, compareToReferenceTransformNode )
 
-  def setCompareDataToObserveRegistration( self, comparePathsNode, compareEndMarkupsNode, compareToReferenceLinearTransformNode ):
-    compareEndMarkupsNode.SetAndObserveTransformNodeID( compareToReferenceLinearTransformNode.GetID() )
+    return True
+
+  def setCompareDataToObserveRegistration( self, comparePathsNode, compareEndMarkupsNode, transformNode ):
+    compareEndMarkupsNode.SetAndObserveTransformNodeID( transformNode.GetID() )
     compareSuffixArray = vtk.vtkIntArray()
     comparePathsNode.GetSuffixes( compareSuffixArray )
     numberOfCompareSuffixes = compareSuffixArray.GetNumberOfTuples()
     for compareSuffixIndex in xrange( 0, numberOfCompareSuffixes ):
       compareSuffix = int(compareSuffixArray.GetComponent( compareSuffixIndex, 0 ) )
       comparePathModelNode = comparePathsNode.GetPathModelNodeBySuffix( compareSuffix )
-      comparePathModelNode.SetAndObserveTransformNodeID( compareToReferenceLinearTransformNode.GetID() )
+      comparePathModelNode.SetAndObserveTransformNodeID( transformNode.GetID() )
       comparePointsModelNode = comparePathsNode.GetPointsModelNodeBySuffix( compareSuffix )
-      comparePointsModelNode.SetAndObserveTransformNodeID( compareToReferenceLinearTransformNode.GetID() )
+      comparePointsModelNode.SetAndObserveTransformNodeID( transformNode.GetID() )
   
   def computeStatistics( self, referencePathsNode, comparePathsNode, \
                                compareToReferenceLinearTransformNode, \
