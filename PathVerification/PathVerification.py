@@ -67,13 +67,21 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
     self.segmentExportButton.enabled = False
     preprocessingFormLayout.addRow(self.segmentExportButton)
 
-    self.trimAmountSpinBox = ctk.ctkDoubleSpinBox()
-    self.trimAmountSpinBox.setDecimals(1)
-    self.trimAmountSpinBox.setValue(0)
-    self.trimAmountSpinBox.minimum = 0
-    self.trimAmountSpinBox.maximum = 100
-    self.trimAmountSpinBox.singleStep = 1
-    preprocessingFormLayout.addRow("Trim Amount (mm): ", self.trimAmountSpinBox)
+    self.nearTrimAmountSpinBox = ctk.ctkDoubleSpinBox()
+    self.nearTrimAmountSpinBox.setDecimals(1)
+    self.nearTrimAmountSpinBox.setValue(0)
+    self.nearTrimAmountSpinBox.minimum = 0
+    self.nearTrimAmountSpinBox.maximum = 100
+    self.nearTrimAmountSpinBox.singleStep = 1
+    preprocessingFormLayout.addRow("Near Trim (mm): ", self.nearTrimAmountSpinBox)
+
+    self.farTrimAmountSpinBox = ctk.ctkDoubleSpinBox()
+    self.farTrimAmountSpinBox.setDecimals(1)
+    self.farTrimAmountSpinBox.setValue(0)
+    self.farTrimAmountSpinBox.minimum = 0
+    self.farTrimAmountSpinBox.maximum = 100
+    self.farTrimAmountSpinBox.singleStep = 1
+    preprocessingFormLayout.addRow("Far Trim (mm): ", self.farTrimAmountSpinBox)
 
     self.trimButton = qt.QPushButton("Trim Points")
     self.trimButton.enabled = False
@@ -366,10 +374,12 @@ class PathVerificationWidget(ScriptedLoadableModuleWidget):
 
   def onTrimButton(self):
     trimPathsNode = self.preprocessPathsComboBox.currentNode()
-    trimDistance = self.trimAmountSpinBox.value
+    nearTrimDistance = self.nearTrimAmountSpinBox.value
+    farTrimDistance = self.farTrimAmountSpinBox.value
     logic = PathVerificationLogic()
-    logic.trimPoints( trimPathsNode, trimDistance )
-    self.trimAmountSpinBox.setValue( 0 ) # avoid trimming twice by accident (e.g. double click)
+    logic.trimPoints( trimPathsNode, nearTrimDistance, farTrimDistance )
+    self.nearTrimAmountSpinBox.setValue( 0 ) # avoid trimming twice by accident (e.g. double click)
+    self.farTrimAmountSpinBox.setValue( 0 )
 
   def onRefitButton(self):
     trimPathsNode = self.preprocessPathsComboBox.currentNode()
@@ -409,7 +419,7 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
       catheterPathNode.CreateDefaultDisplayNodes()
       pathsNode.AddPointsPathPairModelNodeIDs( catheterPointsNode.GetID(), catheterPathNode.GetID() )
 
-  def trimPoints( self, pathsNode, trimDistance ):
+  def trimPoints( self, pathsNode, nearTrimDistance, farTrimDistance ):
     if not pathsNode:
       logging.error("Trim paths node is null.")
       return False
@@ -429,23 +439,12 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
       pointsModelNode = pathsNode.GetPointsModelNodeBySuffix( suffix )
       points = pointsModelNode.GetPolyData().GetPoints()
       # find farthest two points
-      farthestPoint1 = [0, 0, 0]
-      farthestPoint2 = [0, 0, 0]
-      farthestDistance2 = 0
-      numberOfPoints = points.GetNumberOfPoints()
-      for pointIndex1 in xrange( 0, numberOfPoints ):
-        point1 = points.GetPoint( pointIndex1 )
-        for pointIndex2 in xrange( pointIndex1 + 1, numberOfPoints ):
-          point2 = points.GetPoint( pointIndex2 )
-          distance2 = vtk.vtkMath.Distance2BetweenPoints( point1, point2 )
-          if ( distance2 > farthestDistance2 ):
-            farthestDistance2 = distance2
-            farthestPoint1 = point1
-            farthestPoint2 = point2
+      firstPoint = points.GetPoint( 0 )
+      lastPoint = points.GetPoint( points.GetNumberOfPoints() - 1 )
       direction = [ 0, 0, 0 ]
-      direction[ 0 ] = farthestPoint2[ 0 ] - farthestPoint1[ 0 ]
-      direction[ 1 ] = farthestPoint2[ 1 ] - farthestPoint1[ 1 ]
-      direction[ 2 ] = farthestPoint2[ 2 ] - farthestPoint1[ 2 ]
+      direction[ 0 ] = lastPoint[ 0 ] - firstPoint[ 0 ]
+      direction[ 1 ] = lastPoint[ 1 ] - firstPoint[ 1 ]
+      direction[ 2 ] = lastPoint[ 2 ] - firstPoint[ 2 ]
       directions[ suffix ] = direction
 
     # Determine the 'average' direction of catetheters
@@ -492,8 +491,8 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
         shortestMinimumAlongAverageDirection = minimumAlongAverageDirection
       if maximumAlongAverageDirection < shortestMaximumAlongAverageDirection:
         shortestMaximumAlongAverageDirection = maximumAlongAverageDirection
-    shortestMinimumAlongAverageDirection += trimDistance
-    shortestMaximumAlongAverageDirection -= trimDistance
+    shortestMinimumAlongAverageDirection += nearTrimDistance
+    shortestMaximumAlongAverageDirection -= farTrimDistance
     
     # Do the actual filtering
     for suffixIndex in xrange( 0, numberOfSuffixes ):
