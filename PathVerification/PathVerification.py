@@ -709,6 +709,8 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
     summaryPercentile095Array.SetName( "95th Percentile")
     summaryPercentile100Array = vtk.vtkDoubleArray()
     summaryPercentile100Array.SetName( "100th Percentile")
+    summaryAngleDifferenceDegrees = vtk.vtkDoubleArray()
+    summaryAngleDifferenceDegrees.SetName( "Angle Difference (Degrees)")
 
     # compute them
     comparePathsName = comparePathsNode.GetName() # used as a general text label in the outputs
@@ -762,6 +764,24 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
         rawDistance = rawDistances.GetComponent( rawDistanceIndex, 0 )
         distancesValueArray.InsertNextTuple1( rawDistance )
 
+      # Measure angle difference
+      comparePolyDataPoints = registeredComparePathPolyData.GetPoints()
+      comparePathFirstPoint = comparePolyDataPoints.GetPoint(0)
+      comparePathLastPoint = comparePolyDataPoints.GetPoint(comparePolyDataPoints.GetNumberOfPoints()-1)
+      comparePathDirection = [ 0, 0, 0 ]
+      comparePathDirection[ 0 ] = comparePathLastPoint[ 0 ] - comparePathFirstPoint[ 0 ]
+      comparePathDirection[ 1 ] = comparePathLastPoint[ 1 ] - comparePathFirstPoint[ 1 ]
+      comparePathDirection[ 2 ] = comparePathLastPoint[ 2 ] - comparePathFirstPoint[ 2 ]
+      referencePolyDataPoints = correspondingReferencePathPolyData.GetPoints()
+      referencePathFirstPoint = referencePolyDataPoints.GetPoint(0)
+      referencePathLastPoint = referencePolyDataPoints.GetPoint(referencePolyDataPoints.GetNumberOfPoints()-1)
+      referencePathDirection = [ 0, 0, 0 ]
+      referencePathDirection[ 0 ] = referencePathLastPoint[ 0 ] - referencePathFirstPoint[ 0 ]
+      referencePathDirection[ 1 ] = referencePathLastPoint[ 1 ] - referencePathFirstPoint[ 1 ]
+      referencePathDirection[ 2 ] = referencePathLastPoint[ 2 ] - referencePathFirstPoint[ 2 ]
+      angleDifferenceRadians = vtk.vtkMath.AngleBetweenVectors(comparePathDirection,referencePathDirection)
+      angleDifferenceDegrees = angleDifferenceRadians * 180 / vtk.vtkMath.Pi()
+
       summaryLabelArray.InsertNextValue( comparePathsName )
       summarySuffixArray.InsertNextTuple1( compareSuffix )
       catheterLength = float( comparePathModelNode.GetAttribute( slicer.vtkMRMLMarkupsToModelNode.GetOutputCurveLengthAttributeName() ) )
@@ -779,7 +799,8 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
       summaryPercentile075Array.InsertNextTuple1( polyDataDistanceFilter.GetNthPercentileHausdorffDistance( 75 ) )
       summaryPercentile095Array.InsertNextTuple1( polyDataDistanceFilter.GetNthPercentileHausdorffDistance( 95 ) )
       summaryPercentile100Array.InsertNextTuple1( polyDataDistanceFilter.GetNthPercentileHausdorffDistance( 100 ) )
-      # Label, catheter suffix, mean distance, stdev, 0th, 5th, 25th, 50th, 75th, 95th, 100th
+      summaryAngleDifferenceDegrees.InsertNextTuple1( angleDifferenceDegrees )
+      # Label, catheter suffix, mean distance, stdev, 0th, 5th, 25th, 50th, 75th, 95th, 100th, angle difference
 
     # Assign the arrays to the table nodes
     outputDistancesTableNode.RemoveAllColumns()
@@ -801,6 +822,7 @@ class PathVerificationLogic(ScriptedLoadableModuleLogic):
     outputSummaryTableNode.AddColumn( summaryPercentile075Array )
     outputSummaryTableNode.AddColumn( summaryPercentile095Array )
     outputSummaryTableNode.AddColumn( summaryPercentile100Array )
+    outputSummaryTableNode.AddColumn( summaryAngleDifferenceDegrees )
 
 class PathVerificationTest(ScriptedLoadableModuleTest):
   """
