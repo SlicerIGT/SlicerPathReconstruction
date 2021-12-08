@@ -279,7 +279,7 @@ void vtkMRMLPathReconstructionNode::ApplyDefaultSettingsToCollectPointsNode( vtk
 {
   if ( collectPointsNode == NULL )
   {
-    vtkErrorMacro( "CollectPoints node is null. Cannot apply default settings." )
+    vtkErrorMacro( "CollectPoints node is null. Cannot apply default settings." );
     return;
   }
   collectPointsNode->SetMinimumDistance( 0.0 );
@@ -320,7 +320,7 @@ void vtkMRMLPathReconstructionNode::ApplyDefaultSettingsToMarkupsToModelNode( vt
 {
   if ( markupsToModelNode == NULL )
   {
-    vtkErrorMacro( "MarkupsToModel node is null. Cannot apply default settings." )
+    vtkErrorMacro( "MarkupsToModel node is null. Cannot apply default settings." );
     return;
   }
   markupsToModelNode->SetModelType( vtkMRMLMarkupsToModelNode::Curve );

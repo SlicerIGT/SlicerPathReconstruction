@@ -76,7 +76,7 @@ protected:
   void operator=( const vtkMRMLPathReconstructionNode& );
 
 public:
-  void ProcessMRMLEvents( vtkObject* caller, unsigned long event, void* callData ) VTK_OVERRIDE;
+  void ProcessMRMLEvents( vtkObject* caller, unsigned long event, void* callData ) override;
 
   // Convenient access to the corresponding nodes in the CollectPoints module.
   vtkMRMLTransformNode* GetSamplingTransformNode();
